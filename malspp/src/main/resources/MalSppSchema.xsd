@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Copyright or © or Copr. CNES This software is a computer program whose 
+	purpose is to provide a framework for the CCSDS Mission Operations services. 
+	This software is governed by the CeCILL-C license under French law and abiding 
+	by the rules of distribution of free software. You can use, modify and/ or 
+	redistribute the software under the terms of the CeCILL-C license as circulated 
+	by CEA, CNRS and INRIA at the following URL "http://www.cecill.info". As 
+	a counterpart to the access to the source code and rights to copy, modify 
+	and redistribute granted by the license, users are provided only with a limited 
+	warranty and the software's author, the holder of the economic rights, and 
+	the successive licensors have only limited liability. In this respect, the 
+	user's attention is drawn to the risks associated with loading, using, modifying 
+	and/or developing or reproducing the software by the user in light of its 
+	specific status of free software, that may mean that it is complicated to 
+	manipulate, and that also therefore means that it is reserved for developers 
+	and experienced professionals having in-depth computer knowledge. Users are 
+	therefore encouraged to load and test the software's suitability as regards 
+	their requirements in conditions enabling the security of their systems and/or 
+	data to be ensured and, more generally, to use and operate it in the same 
+	conditions as regards security. The fact that you are presently reading this 
+	means that you have had knowledge of the CeCILL-C license and that you accept 
+	its terms. -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.cnes.fr/schema/MalSppSchema" xmlns:ms="http://www.cnes.fr/schema/MalSppSchema"
+	elementFormDefault="qualified">
+
+	<xsd:element name="conf" type="ms:ConfType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Root node of the
+				document.
+			</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+
+	<xsd:complexType name="ConfType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">MAL/SPP out-of-band
+				configuration
+				element
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:choice minOccurs="0" maxOccurs="unbounded">
+				<xsd:element name="app" type="ms:AppType" />
+			</xsd:choice>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="AppType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Element that
+				represents a MAL application.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="authenticationId" type="ms:AuthenticationIdType" />
+			<xsd:element name="domain" type="ms:DomainType" />
+			<xsd:element name="duration" type="ms:DurationType" />
+			<xsd:element name="time" type="ms:TimeType" />
+			<xsd:element name="fineTime" type="ms:TimeType" />
+			<xsd:element name="networkZone" type="ms:NetworkZoneType" />
+			<xsd:element name="packetDataFieldSizeLimit" type="ms:PacketDataFieldSizeLimitType" />
+			<xsd:element name="priority" type="ms:PriorityType" />
+			<xsd:element name="sessionName" type="ms:SessionNameType" />
+			<xsd:element name="varintSupported" type="ms:VarintSupportedType" />
+		</xsd:sequence>
+		<xsd:attribute name="apidQualifier" type="xsd:int" use="required" />
+		<xsd:attribute name="apid" type="xsd:int" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="AuthenticationIdType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value to be assigned to
+				the MAL header field ‘Authentication Id’ if the QoS property
+				AUTHENTICATION_ID_FLAG is FALSE
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:hexBinary" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="DomainType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value to be assigned to
+				the MAL header field ‘Domain’ if the QoS property DOMAIN_FLAG is
+				FALSE
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:string" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="DurationType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Element that configures
+				MAL::Duration type</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="unit" type="ms:UnitType" />
+		</xsd:sequence>
+		<xsd:attribute name="codeFormat" type="xsd:hexBinary"
+			use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="TimeType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Element that configures
+				MAL::Time type</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="unit" type="ms:UnitType" />
+			<xsd:element name="epoch" type="ms:EpochType" />
+		</xsd:sequence>
+		<xsd:attribute name="codeFormat" type="xsd:hexBinary"
+			use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:simpleType name="TimeUnit">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="second" />
+			<xsd:enumeration value="millisecond" />
+			<xsd:enumeration value="microsecond" />
+			<xsd:enumeration value="nanosecond" />
+			<xsd:enumeration value="picosecond" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:complexType name="UnitType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Time unit
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="ms:TimeUnit" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="EpochType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Time epoch
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:time" use="required" />
+		<xsd:attribute name="timeScale" type="ms:TimeScale" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:simpleType name="TimeScale">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="TAI" />
+			<xsd:enumeration value="UTC" />
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:complexType name="NetworkZoneType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value to be assigned to
+				the MAL header field ‘Network Zone’ if NETWORK_ZONE_FLAG is FALSE
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:string" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="PriorityType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value to be assigned
+				to the MAL header field ‘Priority’ if PRIORITY_FLAG is FALSE
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:int" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="PacketDataFieldSizeLimitType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Packet Data Field size
+				limit in octets, strictly less than 65536. A value of 0 denotes the
+				maximum allowable size of 65536 octets.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:int" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="SessionNameType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value to be assigned
+				to the MAL header field ‘Session Name’ if SESSION_NAME_FLAG is FALSE
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:string" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+	<xsd:complexType name="VarintSupportedType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Boolean indicating
+				whether the ‘Varint’ encoding format is supported or not
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" type="xsd:boolean" use="required" />
+		<xsd:attribute name="comment" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+</xsd:schema>
