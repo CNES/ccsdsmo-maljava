@@ -1,0 +1,22 @@
+<assembly>
+  <id>bin</id>
+  <formats>
+    <format>dir</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <moduleSets>
+    <moduleSet>
+      <includes>
+        <include>fr.cnes.mal:mal-impl-base</include>
+        <include>fr.cnes.mal:mal-impl-security</include>
+      </includes>
+      <binaries>
+        <outputDirectory>modules/${artifactId}</outputDirectory>
+        <outputFileNameMapping>
+          ${artifact.artifactId}.${artifact.extension}
+        </outputFileNameMapping>
+        <unpack>false</unpack>
+      </binaries>
+    </moduleSet>
+  </moduleSets>
+</assembly>

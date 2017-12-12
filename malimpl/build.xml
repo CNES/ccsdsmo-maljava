@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE project [
+    <!ENTITY common SYSTEM "file:./common.xml">
+]>
+
+<project default="ship.project" basedir=".">
+
+  <property name="project.dir" location="mal-impl-1.1.0-project" />
+  <property name="parent.dir" location="mal-impl" />
+
+  <target name="ship.project">
+    <antcall target="ship.subproject">
+      <param name="subproject.dir" value="mal-impl-base" />
+    </antcall>
+    <antcall target="ship.subproject">
+      <param name="subproject.dir" value="mal-impl-security" />
+    </antcall>
+    <antcall target="ship.subproject">
+      <param name="subproject.dir" value="mal-impl-broker" />
+    </antcall>
+  </target>
+
+  <target name="ship.subproject">
+    <copy todir="${project.dir}">
+      <fileset dir="${parent.dir}">
+        <include name="pom.xml" />
+        <include name="*-assembly.xml" />
+      </fileset>
+    </copy>
+    <copy todir="${project.dir}/${subproject.dir}">
+      <fileset dir="${parent.dir}/${subproject.dir}">
+        <include name="pom.xml" />
+        <include name="src/**/*" />
+        <exclude name="**/CVS/**" />
+      </fileset>
+    </copy>
+  </target>
+
+</project>

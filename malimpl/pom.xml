@@ -1,0 +1,75 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>fr.cnes.mal</groupId>
+  <artifactId>mal-impl</artifactId>
+  <packaging>pom</packaging>
+  <version>3.2.2</version>
+  <name>CNES MAL implementation</name>
+  
+  <modules>
+    <module>mal-impl-broker</module>
+    <module>mal-impl-security</module>
+    <module>mal-impl-base</module>
+  </modules>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.2</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Specification-Version>1.0-b01</Specification-Version>
+              <Specification-Vendor>CCSDS</Specification-Vendor>
+              <Implementation-Title>CNES MAL</Implementation-Title>
+              <Implementation-Version>${version}</Implementation-Version>
+              <Implementation-Vendor>CNES</Implementation-Vendor>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>mal-impl-assembly.xml</descriptor>
+          </descriptors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  
+  <properties>  
+    <joram.version>5.9.0</joram.version>
+  </properties>
+
+  <!-- Preferred dependencies version -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.ccsds.moims.mo</groupId>
+        <artifactId>cnes-mal-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ow2.joram</groupId>
+        <artifactId>a3-common</artifactId>
+        <version>${joram.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+</project>
