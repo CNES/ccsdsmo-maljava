@@ -1,0 +1,329 @@
+###############################################################################
+# 30 mar 2015 | SMC 3.2.2 release.
+###############################################################################
++==============================================================================
+| 20 jan 2015 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+Updated according to MAL/SPP specification.
+###############################################################################
+# 05 dec 2014 | SMC 3.2.1 release.
+###############################################################################
++==============================================================================
+| 04 dec 2014 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+Added missing method in MALStandardError.
+###############################################################################
+# 02 dec 2013 | SMC 3.2.0 release.
+###############################################################################
++==============================================================================
+| 05 nov 2013 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+Fixed discrepancy with the Magenta Book.
+###############################################################################
+# 29 apr 2013 | SMC 3.1.1 release.
+###############################################################################
+###############################################################################
+# 14 jan 2013 | SMC 3.1.0 release.
+###############################################################################
++==============================================================================
+| 18 dec 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Add interface MALTransmitErrorListener
++==============================================================================
+| 12 dec 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Put the version area in the short form
++==============================================================================
+| 11 dec 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Area version in MALOperationStage and MALPubSubOperation
++==============================================================================
+| 10 dec 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- 'createTransport' takes a MALContext as a parameter
++==============================================================================
+| 07 dec 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Area version
++==============================================================================
+| 05 nov 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Access to the encoded body
++==============================================================================
+| 02 aug 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Enumeration: make distinction between the index and the numeric value of
+  an enumerated item
++==============================================================================
+| 27 jun 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- New class: MALEncodedElementList
++==============================================================================
+| 03 may 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Abstract list interfaces extend 'java.util.List'
+- Use of Generic type variable
+- Rename MALBodyElementFactory <- MALElementFactoryRegistry
++==============================================================================
+| 04 apr 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Add a MALOperation parameter in MALEndPoint 'createMessage' method; remove
+  the useless parameters
+- Same in the MALBrokerBinding 'send' methods
++==============================================================================
+| 28 mar 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Element input/output stream: elements typed Object
+- Enumeration: wraps an 'int'
+- short form typed Object
++==============================================================================
+| 19 mar 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Make attributes Comparable
++==============================================================================
+| 16 mar 2012 | David Feliot - ScalAgent Distributed Technologies
++-------------+----------------------------------------------------------------
+- Error registration in MALHelper
+###############################################################################
+# 2012/03/08 | SMC 3.0.0 release.
+###############################################################################
++==============================================================================
+| 2012/03/05 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- New concept: list interfaces for abstract elements
+- New interfaces: ElementList, CompositeList, AttributeList
++==============================================================================
+| 2012/02/29 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- New type 'MALOperationStage'
++==============================================================================
+| 2012/02/22 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Enable multiple publish/notify update elements
++==============================================================================
+| 2012/02/16 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add setters in the MALMessageHeader interface
++==============================================================================
+| 2012/02/14 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add the error repository in MALContextFactory
++==============================================================================
+| 2012/02/13 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add Consumer.continueOperation()
++==============================================================================
+| 2012/02/09 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add MALBodyElementFactory and MALElementFactory
+- Add Element.createElement()
+- Remove element repository
+- Add version in MALArea service getters
++==============================================================================
+| 2012/02/06 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Encode/Decode moved in the interface Element; removed encodeEnumeration and
+  encodeComposite
+- MALElementInputStream: readElement takes a parameter 'Element'
++==============================================================================
+| 2012/02/03 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Fix some updates
++==============================================================================
+| 2012/02/02 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add MALCheckErrorException
+- Fix Types and exceptions
+- Fix the behaviour of MALProviderSet and MALPublisherSet
++==============================================================================
+| 2012/02/01 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Multi body interactions: MALConsumer, MALInteractionListener, 
+  MALInteractionHandler etc.
+- MALEncodingContext takes a MALOperation instead of a MALService
+- Map is used instead of Hashtable
+- MALArea, MALService, MALOperation: header field types change
++==============================================================================
+| 2012/01/31 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- New List mapping
+- Absolute short form
+- Encoding "nullable" elements
+- Remove the data structures that disappear from the MAL book, for example:
+ StandardError, Update, SubscriptionUpdate, DomainIdentifier, List,
+ MessageHeader, UpdateList, SubscriptionUpdateList
+- New structures: UpdateHeader, File
+- MALException changes
+- MAL area helper: remove element registration in MALContextFactory
+- MALOperation: new short forms
+- MALBroker binding and handler: new body types
+- New interfaces: MALMessageHeader, MALMessageBody, MALPublishBody etc.
++==============================================================================
+| 2012/01/26 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add MALElementFactory
+- Add unsigned integers: UOctet, USHort, UInteger, ULong
+###############################################################################
+# 2012/01/26 | SMC 2.3.0 release.
+###############################################################################
++==============================================================================
+| 2011/12/22 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Enumeration, MALDecoder: enhance enumeration decoding efficiency
++==============================================================================
+| 2011/12/19 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- MALEncoder/Decoder: abstract Attribute encoding/decoding methods
+###############################################################################
+# 2011/12/01 | SMC 2.2.0 release.
+###############################################################################
++==============================================================================
+| 2011/11/10 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- MALPublisher: new API
++==============================================================================
+| 2011/07/06 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- StandardError: getStandardError() not final
+- MALHelper: fix constant syntax (prefix '_')
+- MALEncodingContext: fix getter method names
+- Blob: remove a remaining reference to 'java.net.URL' ('getURL' signature)
+- Composite structures: missing method 'hashCode'
+- MALInteraction: add a properties getter
+- Broker handler framework modifications
++==============================================================================
+| 2011/05/27 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- MALBrokerBinding: remove message delivery starting method.
+- Blob: remove the dependency on 'java.net.URL'.
+- List: use protected methods to access the list content.
++==============================================================================
+| 2011/05/13 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Asynchronous invocations return the MALMessage that has been sent.
+###############################################################################
+# 2011/05/06 | SMC 2.1.0 release.
+###############################################################################
++==============================================================================
+| 2011/05/04 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add factory class deregistration methods.
++==============================================================================
+| 2011/05/03 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Rename 'SecurityManager': AccessControl
+- Modify the Blob interface: java.net.URL replaces java.io.File
++==============================================================================
+| 2011/04/20 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- new method: MALEndPoint#stopMessageDelivery
++==============================================================================
+| 2011/04/14 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- rename the encoding interfaces and classes: add prefix 'MAL'
+- define MALTransportFactory constructor with a 'protocol' parameter
++==============================================================================
+| 2011/04/06 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- modify MALTransport: new method 'createBroker', remove method 'deleteBroker'
++==============================================================================
+| 2011/03/22 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- enable MALEndPoint sharing
++==============================================================================
+| 2011/03/15 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- remove the MALService attribute owned by a broker
++==============================================================================
+| 2011/02/24 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- add parameter 'localName' in MALConsumerManager#createConsumer method
++==============================================================================
+| 2011/02/17 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- rename MAL <- MALContext
+###############################################################################
+# 2011/02/07 | SMC 2.0.1 release.
+###############################################################################
+###############################################################################
+# 2010/11/08 | SMC 2.0.0 release.
+###############################################################################
++==============================================================================
+| 2010/10/21 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- remove MALHelper initAll()
++==============================================================================
+| 2010/09/15 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- MALFactory: An area lookup method is needed in order to resolve the MALArea 
+  of a Notify message which area is different than the consumer's service area.
+- MALArea: service getters are needed to resolve a MALservice from its
+  name or number.
++==============================================================================
+| 2010/09/10 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Change MALService (constructor and method 'addOperation')
+- Remove the SubscriberEvent mechanism
++==============================================================================
+| 2010/09/08 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add the encoding SPI
+###############################################################################
+# 2010/08/27 | SMC 1.1.1 release.
+###############################################################################
++==============================================================================
+| 2010/07/15 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- MALFactory and MALTransportFactory use an internal factory class list
++==============================================================================
+| 2010/07/13 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- static set/add methods in MALFactory and MALTransportFactory enabling a 
+  specific MAL or transport factory to be packaged in a separate OSGi bundle
+###############################################################################
+# 2010/02/09 | SMC 1.1.0_05 release.
+###############################################################################
+- add method MALProvider.getBrokerAuthenticationId()
+###############################################################################
+# 2010/01/13 | SMC 1.1.0_04 release.
+###############################################################################
+- new package "mal.broker"
+###############################################################################
+# 2009/11/12 | SMC 1.1.0_03 release.
+###############################################################################
+- unify the broker creation methods (MAL and transport levels)
+###############################################################################
+# 2009/11/09 | SMC 1.1.0_02 release.
+###############################################################################
++==============================================================================
+| 2009/11/06 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- remove Publish Error (not defined any more in the MAL book)
++==============================================================================
+| 2009/11/05 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- map the Transmit and TransmitMultiple interaction errors
+- enable to get the authentication id of a transport level broker
++==============================================================================
+| 2009/11/02 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- multi transport MAL level broker
++==============================================================================
+| 2009/10/21 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Shared broker creation
++==============================================================================
+| 2009/10/05 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Blob.equals compares bytes (not File)
+- MALFactory.registerArea becomes idempotent
+- The parameter 'priorityLevelNumber' is typed 'int' in 
+  MALProviderManager.createProvider
++==============================================================================
+| 2009/10/01 | David Feliot - ScalAgent Distributed Technologies
++------------+-----------------------------------------------------------------
+- Add the method 'initAll' in the MALHelper.
+- Not compliant with API 0.13: the enumeration element index are suffixed: _INDEX
+###############################################################################
+# 2009/09/23 | SMC 1.1.0_01 release.
+###############################################################################

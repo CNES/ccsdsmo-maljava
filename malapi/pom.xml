@@ -1,0 +1,41 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>org.ccsds.moims.mo</groupId>
+  <artifactId>cnes-mal-api</artifactId>
+  <name>CCSDS Java MAL API</name>
+  <packaging>jar</packaging>
+  <version>3.2.2</version>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.2</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Specification-Version>1.0-b01</Specification-Version>
+              <Specification-Vendor>CCSDS</Specification-Vendor>
+              <Implementation-Title>Java MAL API</Implementation-Title>
+              <Implementation-Version>${project.version}</Implementation-Version>
+              <Implementation-Vendor>CNES</Implementation-Vendor>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

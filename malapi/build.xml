@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<project basedir="." default="javadoc">
+  <target name="javadoc" description="--> Generates the JavaDoc.">
+    <javadoc sourcepath="src/main/java" destdir="malapi-javadoc" access="protected" version="false" author="false" use="false" windowtitle="Java MAL Documentation" doctitle="Java MAL Documentation">
+      <doctitle>
+        <![CDATA[<h1>Java MAL Documentation</h1>]]>
+      </doctitle>
+    <packageset dir="src/main/java" defaultexcludes="yes">
+      <include name="org/ccsds/moims/mo/mal/**" />
+    </packageset>
+  </javadoc>
+</target>
+
+<target name="ship.project">
+  <copy todir="malapi-project">
+    <fileset dir=".">
+      <include name="pom.xml" />
+      <include name="src/**/*" />
+      <exclude name="**/CVS/**" />
+    </fileset>
+  </copy>
+</target>
+</project>
