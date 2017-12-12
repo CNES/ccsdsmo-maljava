@@ -2,13 +2,62 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+	<organization>
+		<name>CNES</name>
+		<url>http://www.cnes.fr</url>
+	</organization>
+
 	<groupId>fr.cnes.mal</groupId>
 	<artifactId>mal-spp-transport</artifactId>
 	<packaging>jar</packaging>
 	<version>3.2.2</version>
-	<name>CNES MAL/SPP implementation</name>
+	<name>CNES Java implementation for MAL SPP Transport</name>
+	<description>A Java implementation for MAL SPP Transport</description>
+
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>https://raw.githubusercontent.com/ccsdsmo/maljava/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:ccsdsmo/maljava.git</connection>
+		<developerConnection>scm:git:git@github.com:ccsdsmo/maljava.git</developerConnection>
+		<url>https://github.com/ccsdsmo/maljava</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/ccsdsmo/maljava/issues</url>
+	</issueManagement>
+
+	<developers>
+		<developer>
+			<id>DavidFeliot</id>
+			<name>David Feliot</name>
+			<email>david.feliot@scalagent.com</email>
+			<url>https://github.com/DavidFeliot</url>
+		</developer>
+		<developer>
+			<id>freyssin</id>
+			<name>Andre Freyssinet</name>
+			<email>andre.freyssinet@scalagent.com</email>
+			<url>https://github.com/freyssin</url>
+		</developer>
+	</developers>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>..</directory>
+				<includes>
+					<include>LICENSE</include>
+				</includes>
+			</resource>
+		</resources>
+
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
