@@ -1,0 +1,113 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<organization>
+		<name>CNES</name>
+		<url>http://www.cnes.fr</url>
+	</organization>
+
+	<groupId>fr.cnes.mal</groupId>
+	<artifactId>mal-tcp-transport</artifactId>
+	<packaging>jar</packaging>
+	<version>1.0.0-SNAPSHOT</version>
+	<name>CNES Java implementation for MAL TCP/IP transport</name>
+	<description>A Java implementation for MAL TCP/IP transport</description>
+
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>https://raw.githubusercontent.com/ccsdsmo/maljava/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:ccsdsmo/maljava.git</connection>
+		<developerConnection>scm:git:git@github.com:ccsdsmo/maljava.git</developerConnection>
+		<url>https://github.com/ccsdsmo/maljava</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/ccsdsmo/maljava/issues</url>
+	</issueManagement>
+
+	<developers>
+		<developer>
+			<id>freyssin</id>
+			<name>Andre Freyssinet</name>
+			<email>andre.freyssinet@scalagent.com</email>
+			<url>https://github.com/freyssin</url>
+		</developer>
+	</developers>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>int.esa.ccsds.mo</groupId>
+			<artifactId>API_MAL</artifactId>
+			<version>1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>int.esa.ccsds.mo</groupId>
+			<artifactId>ENCODING_GEN</artifactId>
+			<version>1.0.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>int.esa.ccsds.mo</groupId>
+			<artifactId>ENCODING_BINARY_FIXED</artifactId>
+			<version>1.0.4</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>..</directory>
+				<includes>
+					<include>LICENSE</include>
+				</includes>
+			</resource>
+		</resources>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+			</plugin>
+			<!-- TODO (AF): To remove. <plugin> <groupId>org.apache.maven.plugins</groupId> 
+				<artifactId>maven-compiler-plugin</artifactId> </plugin> -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>ESA</id>
+			<dependencies>
+				<dependency>
+					<groupId>int.esa.ccsds.mo</groupId>
+					<artifactId>API_MAL</artifactId>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+</project>
