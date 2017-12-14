@@ -1,75 +1,122 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  
-  <groupId>fr.cnes.mal</groupId>
-  <artifactId>mal-impl</artifactId>
-  <packaging>pom</packaging>
-  <version>3.2.2</version>
-  <name>CNES MAL implementation</name>
-  
-  <modules>
-    <module>mal-impl-broker</module>
-    <module>mal-impl-security</module>
-    <module>mal-impl-base</module>
-  </modules>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
-        <configuration>
-          <source>1.5</source>
-          <target>1.5</target>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.2</version>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Specification-Version>1.0-b01</Specification-Version>
-              <Specification-Vendor>CCSDS</Specification-Vendor>
-              <Implementation-Title>CNES MAL</Implementation-Title>
-              <Implementation-Version>${version}</Implementation-Version>
-              <Implementation-Vendor>CNES</Implementation-Vendor>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <configuration>
-          <descriptors>
-            <descriptor>mal-impl-assembly.xml</descriptor>
-          </descriptors>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-  
-  <properties>  
-    <joram.version>5.9.0</joram.version>
-  </properties>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <!-- Preferred dependencies version -->
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.ccsds.moims.mo</groupId>
-        <artifactId>cnes-mal-api</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.ow2.joram</groupId>
-        <artifactId>a3-common</artifactId>
-        <version>${joram.version}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+	<organization>
+		<name>CNES</name>
+		<url>http://www.cnes.fr</url>
+	</organization>
+
+	<groupId>fr.cnes.ccsds.mo</groupId>
+	<artifactId>mal-impl</artifactId>
+	<version>3.2.3-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>CNES Java MAL implementation</name>
+	<description>The CNES implementation of the CCSDS MAL in Java</description>
+
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>https://raw.githubusercontent.com/ccsdsmo/maljava/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:ccsdsmo/maljava.git</connection>
+		<developerConnection>scm:git:git@github.com:ccsdsmo/maljava.git</developerConnection>
+		<url>https://github.com/ccsdsmo/maljava</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/ccsdsmo/maljava/issues</url>
+	</issueManagement>
+
+	<developers>
+		<developer>
+			<id>DavidFeliot</id>
+			<name>David Feliot</name>
+			<email>david.feliot@scalagent.com</email>
+			<url>https://github.com/DavidFeliot</url>
+		</developer>
+		<developer>
+			<id>freyssin</id>
+			<name>Andre Freyssinet</name>
+			<email>andre.freyssinet@scalagent.com</email>
+			<url>https://github.com/freyssin</url>
+		</developer>
+	</developers>
+
+	<modules>
+		<module>mal-impl-broker</module>
+		<module>mal-impl-security</module>
+		<module>mal-impl-base</module>
+	</modules>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>..</directory>
+				<includes>
+					<include>LICENSE</include>
+				</includes>
+			</resource>
+		</resources>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.2</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Specification-Version>1.0-b01</Specification-Version>
+							<Specification-Vendor>CCSDS</Specification-Vendor>
+							<Implementation-Title>CNES MAL</Implementation-Title>
+							<Implementation-Version>${version}</Implementation-Version>
+							<Implementation-Vendor>CNES</Implementation-Vendor>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>mal-impl-assembly.xml</descriptor>
+					</descriptors>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<properties>
+		<joram.version>5.9.0</joram.version>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.ccsds.moims.mo</groupId>
+				<artifactId>cnes-mal-api</artifactId>
+				<version>3.2.2</version>
+			</dependency>
+			<dependency>
+				<groupId>org.ow2.joram</groupId>
+				<artifactId>a3-common</artifactId>
+				<version>${joram.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 </project>

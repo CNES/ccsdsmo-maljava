@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
   
   <parent>
-    <groupId>fr.cnes.mal</groupId>
+    <groupId>fr.cnes.ccsds.mo</groupId>
     <artifactId>mal-impl</artifactId>
-    <version>3.2.2</version>
+    <version>3.2.3-SNAPSHOT</version>
   </parent>
   
   <artifactId>mal-impl-base</artifactId>
@@ -22,7 +22,7 @@
       <artifactId>a3-common</artifactId>
     </dependency>
     <dependency>
-      <groupId>fr.cnes.mal</groupId>
+      <groupId>fr.cnes.ccsds.mo</groupId>
       <artifactId>mal-impl-broker</artifactId>
       <version>${project.version}</version>
     </dependency>
