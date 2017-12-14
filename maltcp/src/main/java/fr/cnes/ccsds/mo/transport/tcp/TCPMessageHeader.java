@@ -23,7 +23,6 @@
   *******************************************************************************/
 package fr.cnes.ccsds.mo.transport.tcp;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -40,11 +39,6 @@ import org.ccsds.moims.mo.mal.MALRequestOperation;
 import org.ccsds.moims.mo.mal.MALSubmitOperation;
 import org.ccsds.moims.mo.mal.structures.*;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
-
-import esa.mo.mal.encoder.binary.BinaryDecoder;
-import esa.mo.mal.encoder.binary.BinaryEncoder;
-import esa.mo.mal.encoder.binary.fixed.FixedBinaryDecoder;
-import esa.mo.mal.encoder.binary.fixed.FixedBinaryEncoder;
 
 /**
  * Implementation of MALMessageHeader interface.
@@ -668,116 +662,9 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		if (authenticationIdFlag != 0) encodeBinaryBlob(out, authenticationId.getValue());
 	}
 
-	// TODO (AF): To remove (use only for debug).
-	public void encodeMessageHeader2(OutputStream lowLevelOutputStream) throws IllegalArgumentException, MALException {
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ >> " + this.toString());
-
-		// First part of the header is encoded with FixedBinaryEncoder.
-		final FixedBinaryEncoder encoder1 = new FixedBinaryEncoder(lowLevelOutputStream);
-
-	    encoder1.encodeUOctet(new UOctet(getSDUType()));
-		
-		encoder1.encodeUShort(serviceArea);
-		encoder1.encodeUShort(service);
-		encoder1.encodeUShort(operation);
-		encoder1.encodeUOctet(areaVersion);
-
-	    encoder1.encodeUOctet(new UOctet((short) (getErrorFlag() | getQoSLevelBits() | getSessionBits())));
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ >> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
-	    
-		encoder1.encodeLong(transactionId);
-
-		// Always encode URI's (Allowed by the specification).
-		int sourceFlag = SOURCE_FLAG;
-		int destinationFlag = DESTINATION_FLAG;
-		
-		int priorityFlag = ((getPriority()==null)?0:PRIORITY_FLAG);
-		int timestampFlag = ((getTimestamp()==null)?0:TIMESTAMP_FLAG);
-		int networkZoneFlag = ((getNetworkZone()==null)?0:NETWORK_ZONE_FLAG);
-		int sessionNameFlag = ((getSessionName()==null)?0:SESSION_NAME_FLAG);
-		int domainFlag = ((getDomain()==null)?0:DOMAIN_FLAG);
-		int authenticationIdFlag = ((getAuthenticationId()==null)?0:AUTHENTICATION_FLAG);
-
-		short flags = (short) (sourceFlag | destinationFlag |
-				priorityFlag | timestampFlag | networkZoneFlag | sessionNameFlag | domainFlag | authenticationIdFlag);
-		encoder1.encodeUOctet(new UOctet(flags));
-		
-		encoder1.encodeUOctet(decodingId);
-		
-		// The real message length is encoded later in TCPTransportDataTransceiver.sendEncoded()
-		// method.
-		encoder1.encodeUInteger(new UInteger(0L));
-		
-		// Second part of the header is encoded with SplitBinaryEncoder.
-		final BinaryEncoder encoder2 = new BinaryEncoder(lowLevelOutputStream);
-		// TODO (AF): To remove (use BinaryEncoder for the last part of header)
-//		final FixedBinaryEncoder encoder2 = new FixedBinaryEncoder(lowLevelOutputStream);
-		
-		// Always encode URI's (Allowed by the specification).
-		encoder2.encodeString(URIFrom.getValue());
-		encoder2.encodeString(URITo.getValue());
-		
-		if (priorityFlag != 0) encoder2.encodeUInteger(priority);
-		if (timestampFlag != 0) encoder2.encodeTime(timestamp);
-		if (networkZoneFlag != 0) encoder2.encodeIdentifier(networkZone);
-		if (sessionNameFlag != 0) encoder2.encodeIdentifier(sessionName);
-		if (domainFlag != 0) encoder2.encodeElement(domain);
-		if (authenticationIdFlag != 0) encoder2.encodeBlob(authenticationId);
-	}
 
 	public void encode(final MALEncoder encoder) throws MALException {
 		throw new MALException("Should never be used");
-		
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ >> " + this.toString());
-//
-//	    // The first part of the header should be encoded using fixed size types,
-//	    // the second part (after message size) should use varint algorithm.
-//	    
-//	    encoder.encodeUOctet(new UOctet(getSDUType()));
-//		
-//		encoder.encodeUShort(serviceArea);
-//		encoder.encodeUShort(service);
-//		encoder.encodeUShort(operation);
-//		encoder.encodeUOctet(areaVersion);
-//
-//	    encoder.encodeUOctet(new UOctet((short) (getErrorFlag() | getQoSLevelBits() | getSessionBits())));
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ >> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
-//	    
-//		encoder.encodeLong(transactionId);
-//
-//		// Always encode URI's (Allowed by the specification).
-//		int sourceFlag = SOURCE_FLAG;
-//		int destinationFlag = DESTINATION_FLAG;
-//		
-//		int priorityFlag = ((getPriority()==null)?0:PRIORITY_FLAG);
-//		int timestampFlag = ((getTimestamp()==null)?0:TIMESTAMP_FLAG);
-//		int networkZoneFlag = ((getNetworkZone()==null)?0:NETWORK_ZONE_FLAG);
-//		int sessionNameFlag = ((getSessionName()==null)?0:SESSION_NAME_FLAG);
-//		int domainFlag = ((getDomain()==null)?0:DOMAIN_FLAG);
-//		int authenticationIdFlag = ((getAuthenticationId()==null)?0:AUTHENTICATION_FLAG);
-//
-//		short flags = (short) (sourceFlag | destinationFlag |
-//				priorityFlag | timestampFlag | networkZoneFlag | sessionNameFlag | domainFlag | authenticationIdFlag);
-//		encoder.encodeUOctet(new UOctet(flags));
-//		
-//		encoder.encodeUOctet(decodingId);
-//		
-//		// The real message length is encoded later in TCPTransportDataTransceiver.sendEncoded()
-//		// method.
-//		encoder.encodeUInteger(new UInteger(0L));
-//		
-//		// TODO (AF): These values below should be encoded using varint.
-//		
-//		// Always encode URI's (Allowed by the specification).
-//		encoder.encodeURI(URIFrom);
-//		encoder.encodeURI(URITo);
-//		
-//		if (priorityFlag != 0) encoder.encodeUInteger(priority);
-//		if (timestampFlag != 0) encoder.encodeTime(timestamp);
-//		if (networkZoneFlag != 0) encoder.encodeIdentifier(networkZone);
-//		if (sessionNameFlag != 0) encoder.encodeIdentifier(sessionName);
-//		if (domainFlag != 0) encoder.encodeElement(domain);
-//		if (authenticationIdFlag != 0) encoder.encodeBlob(authenticationId);
 	}
 
 	class Buffer {
@@ -1035,183 +922,9 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		return buffer.getRemainingEncodedData();
 	}
 
-	// TODO (AF): To remove (use only for debug).
-	public byte[] decodeMessageHeader1(final byte[] packet1) throws MALException {
-		// First part of the header is decoded with FixedBinaryDecoder.
-		final ByteArrayInputStream bis1 = new ByteArrayInputStream(packet1);
-		final FixedBinaryDecoder decoder1 = new FixedBinaryDecoder(bis1);
-		
-		short sduType = decoder1.decodeUOctet().getValue();
-		interactionType = getInteractionType(sduType);
-		interactionStage = getInteractionStage(sduType);
-		
-		serviceArea = decoder1.decodeUShort();
-		service = decoder1.decodeUShort();
-		operation = decoder1.decodeUShort();
-		
-		areaVersion = decoder1.decodeUOctet();
-		
-		short tmpUOctet = decoder1.decodeUOctet().getValue();
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + tmpUOctet);
-		isErrorMessage = ((tmpUOctet & ERROR_MASK) != 0);
-		QoSlevel = QoSLevel.fromOrdinal((tmpUOctet & QOS_LEVEL_MASK) >> 4);
-		session = SessionType.fromOrdinal(tmpUOctet & SESSION_MASK);
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
-
-		transactionId = decoder1.decodeLong();
-		
-		short flags = decoder1.decodeUOctet().getValue();
-		
-		// Source and Destination URI could be omitted by some implementations.
-		int sourceFlag = flags & SOURCE_FLAG;
-		int destinationFlag = flags & DESTINATION_FLAG;
-		
-		int priorityFlag = flags & PRIORITY_FLAG;
-		int timestampFlag = flags & TIMESTAMP_FLAG;
-		int networkZoneFlag = flags & NETWORK_ZONE_FLAG;
-		int sessionNameFlag = flags & SESSION_NAME_FLAG;
-		int domainFlag = flags & DOMAIN_FLAG;
-		int authenticationIdFlag = flags & AUTHENTICATION_FLAG;
-
-		decodingId = decoder1.decodeUOctet();
-		
-		// Message length, this value is already read in TCPTransportDataTransceiver.readEncoded()
-		// method.
-		decoder1.decodeUInteger();
-
-		final byte[] packet2 = decoder1.getRemainingEncodedData();
-		try {
-			bis1.close();
-		} catch (IOException exc) {
-			TCPTransport.RLOGGER.log(Level.SEVERE, "Error closing the related input stream", exc);
-		}
-		
-		// Second part of the header is decoded with SplitBinaryDecoder.
-		final ByteArrayInputStream bis2 = new ByteArrayInputStream(packet2);
-		final BinaryDecoder decoder2 = new BinaryDecoder(bis2);
-		// TODO (AF): To remove (use BinaryDecoder for the last part of header)
-//		final FixedBinaryDecoder decoder2 = new FixedBinaryDecoder(bis2);
-		
-		// If source URI is not present or complete we should build it.
-		if (sourceFlag != 0) {
-			URIFrom = decoder2.decodeURI();
-			if (! URIFrom.getValue().startsWith(protocol)) {
-				URIFrom = new URI(remoteBaseURI + URIFrom.getValue());
-			}
-		} else {
-			URIFrom = new URI(remoteBaseURI);
-		}
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + remoteBaseURI + " XX " + URIFrom);
-
-		// If destination URI is not present or complete we should build it.
-		if (destinationFlag != 0) {
-			URITo = decoder2.decodeURI();
-			if (! URITo.getValue().startsWith(protocol)) {
-				URITo = new URI(localBaseURI + URITo.getValue());
-			}
-		} else {
-			URITo = new URI(localBaseURI);
-		}
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + localBaseURI + " XX " + URITo);
-		
-		if (priorityFlag != 0) priority = decoder2.decodeUInteger();
-		if (timestampFlag != 0) timestamp = decoder2.decodeTime();
-		if (networkZoneFlag != 0) networkZone = decoder2.decodeIdentifier();
-		if (sessionNameFlag != 0) sessionName = decoder2.decodeIdentifier();
-		if (domainFlag != 0) domain = (IdentifierList) decoder2.decodeElement(new IdentifierList());
-		if (authenticationIdFlag != 0) authenticationId = decoder2.decodeBlob();
-		
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + this.toString());
-
-		
-		final byte[] packet = decoder2.getRemainingEncodedData();
-		try {
-			bis2.close();
-		} catch (IOException exc) {
-			TCPTransport.RLOGGER.log(Level.SEVERE, "Error closing the related input stream", exc);
-		}
-		
-		return packet;
-	}
 
 	public Element decode(final MALDecoder decoder) throws MALException {
 		throw new MALException("Should never be used");
-		
-//	    // The first part of the header should be decoded using fixed size types,
-//	    // the second part (after message size) should use varint algorithm.
-
-//		short sduType = decoder.decodeUOctet().getValue();
-//		interactionType = getInteractionType(sduType);
-//		interactionStage = getInteractionStage(sduType);
-//		
-//		serviceArea = decoder.decodeUShort();
-//		service = decoder.decodeUShort();
-//		operation = decoder.decodeUShort();
-//		
-//		areaVersion = decoder.decodeUOctet();
-//		
-//		short tmpUOctet = decoder.decodeUOctet().getValue();
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ << " + tmpUOctet);
-//		isErrorMessage = ((tmpUOctet & ERROR_MASK) != 0);
-//		QoSlevel = QoSLevel.fromOrdinal((tmpUOctet & QOS_LEVEL_MASK) >> 4);
-//		session = SessionType.fromOrdinal(tmpUOctet & SESSION_MASK);
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ << " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
-//
-//		transactionId = decoder.decodeLong();
-//		
-//		short flags = decoder.decodeUOctet().getValue();
-//		
-//		// Source and Destination URI could be omitted by some implementations.
-//		int sourceFlag = flags & SOURCE_FLAG;
-//		int destinationFlag = flags & DESTINATION_FLAG;
-//		
-//		int priorityFlag = flags & PRIORITY_FLAG;
-//		int timestampFlag = flags & TIMESTAMP_FLAG;
-//		int networkZoneFlag = flags & NETWORK_ZONE_FLAG;
-//		int sessionNameFlag = flags & SESSION_NAME_FLAG;
-//		int domainFlag = flags & DOMAIN_FLAG;
-//		int authenticationIdFlag = flags & AUTHENTICATION_FLAG;
-//
-//		decodingId = decoder.decodeUOctet();
-//		
-//		// Message length, this value is already read in TCPTransportDataTransceiver.readEncoded()
-//		// method.
-//		decoder.decodeUInteger();
-//
-//		// TODO (AF): These values below should be decoded using varint.
-//
-//		// If source URI is not present or complete we should build it.
-//		if (sourceFlag != 0) {
-//			URIFrom = decoder.decodeURI();
-//			if (! URIFrom.getValue().startsWith(protocol)) {
-//				URIFrom = new URI(remoteBaseURI + URIFrom.getValue());
-//			}
-//		} else {
-//			URIFrom = new URI(remoteBaseURI);
-//		}
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ << " + remoteBaseURI + " XX " + URIFrom);
-//
-//		// If destination URI is not present or complete we should build it.
-//		if (destinationFlag != 0) {
-//			URITo = decoder.decodeURI();
-//			if (! URITo.getValue().startsWith(protocol)) {
-//				URITo = new URI(localBaseURI + URITo.getValue());
-//			}
-//		} else {
-//			URITo = new URI(localBaseURI);
-//		}
-//	    TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ << " + localBaseURI + " XX " + URITo);
-//		
-//		if (priorityFlag != 0) priority = decoder.decodeUInteger();
-//		if (timestampFlag != 0) timestamp = decoder.decodeTime();
-//		if (networkZoneFlag != 0) networkZone = decoder.decodeIdentifier();
-//		if (sessionNameFlag != 0) sessionName = decoder.decodeIdentifier();
-//		if (domainFlag != 0) domain = (IdentifierList) decoder.decodeElement(new IdentifierList());
-//		if (authenticationIdFlag != 0) authenticationId = decoder.decodeBlob();
-//		
-//		TCPTransport.RLOGGER.log(Level.SEVERE, "@@@@@ << " + this.toString());
-//
-//		return this;
 	}
 
 	public UShort getAreaNumber() {
