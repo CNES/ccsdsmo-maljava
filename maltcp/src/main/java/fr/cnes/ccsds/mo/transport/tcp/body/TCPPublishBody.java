@@ -98,22 +98,10 @@ public class TCPPublishBody extends TCPMessageBody implements MALPublishBody {
 		this.offset = offset;
 	}
 
-	public int getUpdateCount() throws MALException {
-		if (null == hdrList) {
-			getUpdateHeaderList();
-		}
-		return hdrList.size();
-	}
-
 	public UpdateHeaderList getUpdateHeaderList() throws MALException {
 		hdrList = (UpdateHeaderList) getBodyElement(offset,
 				new UpdateHeaderList());
 		return hdrList;
-	}
-
-	public List getUpdateList(final int listIndex, final List updateList)
-			throws MALException {
-		return (List) getBodyElement(offset + listIndex + 1, updateList);
 	}
 
 	public List[] getUpdateLists(final List... updateLists) throws MALException {
@@ -127,8 +115,18 @@ public class TCPPublishBody extends TCPMessageBody implements MALPublishBody {
 		return rv;
 	}
 
-	public Object getUpdate(final int listIndex, final int updateIndex)
-			throws MALException {
+	public List getUpdateList(final int listIndex, final List updateList) throws MALException {
+		return (List) getBodyElement(offset + listIndex + 1, updateList);
+	}
+
+	public int getUpdateCount() throws MALException {
+		if (null == hdrList) {
+			getUpdateHeaderList();
+		}
+		return hdrList.size();
+	}
+
+	public Object getUpdate(final int listIndex, final int updateIndex) throws MALException {
 		decodeMessageBody();
 
 		return ((List) (messageParts[offset + 1 + listIndex])).get(updateIndex);
