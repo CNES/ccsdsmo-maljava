@@ -7,10 +7,10 @@
 		<url>http://www.cnes.fr</url>
 	</organization>
 
-	<groupId>fr.cnes.mal</groupId>
+	<groupId>fr.cnes.ccsds.mo</groupId>
 	<artifactId>mal-spp-transport</artifactId>
+	<version>3.2.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<version>3.2.2</version>
 	<name>CNES Java implementation for MAL SPP Transport</name>
 	<description>A Java implementation for MAL SPP Transport</description>
 
@@ -95,10 +95,15 @@
 		<dependency>
 			<groupId>org.ccsds.moims.mo</groupId>
 			<artifactId>cnes-mal-api</artifactId>
+			<version>3.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>fr.cnes.ccsdds.mo</groupId>
+			<artifactId>mal-gen-transport</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>fr.cnes.mal</groupId>
+			<groupId>fr.cnes.ccsdds.mo</groupId>
 			<artifactId>mal-binary-encoding</artifactId>
 			<version>${project.version}</version>
 		</dependency>
