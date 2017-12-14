@@ -23,7 +23,6 @@
   *******************************************************************************/
 package fr.cnes.ccsds.mo.transport.tcp.body;
 
-import esa.mo.mal.encoder.gen.GENElementInputStream;
 import fr.cnes.ccsds.mo.transport.tcp.TCPTransport;
 
 import java.io.ByteArrayInputStream;
@@ -123,10 +122,6 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			final MALElementInputStream encBodyElements) {
 		this.ctx = ctx;
 
-		// TODO (AF): To remove.
-//		TCPTransport.RLOGGER.log(Level.SEVERE,
-//				"\n\n##### TCPMessageBody.wrappedBodyParts=true !! ##### \n\n", new Exception());
-
 		this.wrappedBodyParts = wrappedBodyParts;
 		this.encFactory = encFactory;
 		this.encBodyElements = encBodyElements;
@@ -150,13 +145,13 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 
 	@Override
 	public MALEncodedBody getEncodedBody() throws MALException {
-		// TODO (AF): To remove.
-//		TCPTransport.RLOGGER.log(Level.SEVERE, "\n\n##### TCPMessageBody.getEncodedBody ##### \n\n");
-		if (!decodedBody && (encBodyElements instanceof GENElementInputStream)) {
-			return new MALEncodedBody(new Blob(((GENElementInputStream) encBodyElements).getRemainingEncodedData()));
-		} else {
-			throw new UnsupportedOperationException("Not supported yet.");
-		}
+		// TODO (AF):
+//		if (!decodedBody && (encBodyElements instanceof GENElementInputStream)) {
+//			return new MALEncodedBody(new Blob(((GENElementInputStream) encBodyElements).getRemainingEncodedData()));
+//		} else {
+//			throw new UnsupportedOperationException("Not supported yet.");
+//		}
+	    throw new MALException("Not yet implemented");
 	}
 
 	@Override
@@ -198,8 +193,6 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			enc.flush();
 
 			try {
-				// TODO (AF): To remove
-//				System.out.println("\n\n????? encodeMessageBody#1 ?????\n\n");
 				lowLevelOutputStream.write(((MALEncodedBody) messageParts[0]).getEncodedBody().getValue());
 				lowLevelOutputStream.flush();
 			} catch (IOException ex) {
@@ -209,8 +202,6 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			enc.flush();
 
 			try {
-				// TODO (AF): To remove
-//				System.out.println("\n\n????? encodeMessageBody#2 ?????\n\n");
 				lowLevelOutputStream.write(getEncodedBody().getEncodedBody().getValue());
 				lowLevelOutputStream.flush();
 			} catch (IOException ex) {
@@ -219,20 +210,14 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 		} else {
 			final int count = getElementCount();
 
-			// TODO (AF): Set logging level to FINE
-			TCPTransport.RLOGGER.log(Level.WARNING,
-					"TCP Message encoding body ... pc ({0})", count);
+			TCPTransport.RLOGGER.log(Level.FINE, "TCP Message encoding body ... pc ({0})", count);
 
 			// if we only have a single body part then encode that directly
 			if (count == 1) {
-				// TODO (AF): To remove
-//				System.out.println("\n\n????? encodeMessageBody#3 ?????\n\n");
 				ctx.setBodyElementIndex(0);
 				Object sf = ctx.getOperation().getOperationStage(stage).getElementShortForms()[0];
 				encodeBodyPart(streamFactory, enc, wrappedBodyParts, sf, getBodyElement(0, null), ctx);
 			} else if (count > 1) {
-				// TODO (AF): To remove
-//				System.out.println("\n\n????? encodeMessageBody#4: wrappedBodyParts=" + wrappedBodyParts + " ?????\n\n");
 				MALElementOutputStream benc = enc;
 				ByteArrayOutputStream bbaos = null;
 
@@ -275,14 +260,8 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			final boolean wrapBodyParts,
 			final Object sf, final Object o, final MALEncodingContext ctx) throws MALException {
 
-		// TODO (AF): To remove.
-//		TCPTransport.RLOGGER.log(Level.SEVERE,
-//				"\n\n##### TCPMessageBody.encodeBodyPart wrapBodyParts=true !! ##### \n\n", new Exception());
-
 		// if it is already an encoded element then just write it directly
 		if (o instanceof MALEncodedElement) {
-			// TODO (AF): To remove
-//			System.out.println("\n\n????? encodeBodyPart#1 ?????\n\n");
 			enc.writeElement(((MALEncodedElement) o).getEncodedElement(), ctx);
 		} else if ((null == o) || (o instanceof Element)) {
 			// else if it is a MAL data type object
@@ -290,9 +269,6 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			MALElementOutputStream lenc = enc;
 			ByteArrayOutputStream lbaos = null;
 			
-			// TODO (AF): To remove
-//			System.out.println("\n\n????? encodeBodyPart#2: wrappedBodyParts=" + wrappedBodyParts + " ?????\n\n");
-
 			if (wrapBodyParts) {
 				// we encode it into a byte buffer so that it can be extracted
 				// as a MALEncodedElement if required
@@ -311,11 +287,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				enc.writeElement(new Blob(lbaos.toByteArray()), null);
 			}
 		} else if (o.getClass().isAnnotationPresent(javax.xml.bind.annotation.XmlType.class)) {
-			// else if it is a JAXB XML object
-			
-			// TODO (AF): To remove
-//			System.out.println("\n\n????? encodeBodyPart#3: wrappedBodyParts=" + wrappedBodyParts + " ?????\n\n");
-				
+			// else if it is a JAXB XML object				
 			try {
 				// get the XML tags for the object
 				final String ssf = (String) sf;
@@ -331,9 +303,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				// encode the XML into a string
 				final StringWriter ow = new StringWriter();
 				marshaller.marshal(new JAXBElement(new QName(schemaURN, schemaEle), o.getClass(), null, o), ow);
-				TCPTransport.RLOGGER.log(Level.FINE,
-						"TCP Message encoding XML body part : {0}",
-						ow.toString());
+				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message encoding XML body part : {0}", ow.toString());
 
 				MALElementOutputStream lenc = enc;
 				ByteArrayOutputStream lbaos = null;
@@ -413,9 +383,8 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				} else {
 					bodyPartCount = ctx.getOperation().getOperationStage(ctx.getHeader().getInteractionStage()).getElementShortForms().length;
 				}
-				// TODO (AF): Set logging level to FINE
-				TCPTransport.RLOGGER.log(Level.WARNING,
-						"TCP Message decoding body ... pc ({0})", bodyPartCount);
+				
+				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding body ... pc ({0})", bodyPartCount);
 				messageParts = new Object[bodyPartCount];
 
 				if (bodyPartCount == 1) {
@@ -428,7 +397,6 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				} else if (bodyPartCount > 1) {
 					MALElementInputStream benc = encBodyElements;
 					if (wrappedBodyParts) {
-						// TODO (AF): Set logging level to FINE
 						TCPTransport.RLOGGER.fine("TCP Message decoding body wrapper");
 						final Blob body = (Blob) encBodyElements.readElement(
 								new Blob(), null);
@@ -438,8 +406,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 					}
 
 					for (int i = 0; i < bodyPartCount; i++) {
-						TCPTransport.RLOGGER.log(Level.FINE,
-								"TCP Message decoding body part : {0}", i);
+						TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding body part : {0}", i);
 						Object sf = null;
 
 						ctx.setBodyElementIndex(i);
@@ -458,8 +425,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 
 				TCPTransport.RLOGGER.fine("TCP Message decoded body");
 			} catch (MALException ex) {
-				TCPTransport.RLOGGER.log(Level.WARNING,
-						"TCP Message body ERROR on decode : {0}", ex);
+				TCPTransport.RLOGGER.log(Level.WARNING, "TCP Message body ERROR on decode : {0}", ex);
 			}
 		}
 	}
@@ -494,8 +460,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			Object element = null;
 			if (null != sf) {
 				Long shortForm = (Long) sf;
-				TCPTransport.RLOGGER.log(Level.FINER,
-						"TCP Message decoding body part : Type = {0}",
+				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding body part : Type = {0}",
 						shortForm);
 				final MALElementFactory ef = MALContextFactory
 						.getElementFactoryRegistry().lookupElementFactory(
@@ -503,9 +468,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				if (null != ef) {
 					element = (Element) ef.createElement();
 				} else {
-					throw new MALException(
-							"TCP transport unable to find element factory for short type: "
-									+ shortForm);
+					throw new MALException("TCP transport unable to find element factory for short type: " + shortForm);
 				}
 			}
 
@@ -514,9 +477,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			final Union u = (Union) lenc.readElement(new Union(""), null);
 			if (null != u) {
 				final String shortForm = u.getStringValue();
-				TCPTransport.RLOGGER.log(Level.FINER,
-						"TCP Message decoding XML body part : Type = {0}",
-						shortForm);
+				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding XML body part : Type = {0}", shortForm);
 
 				try {
 					final String schemaURN = shortForm.substring(0,
