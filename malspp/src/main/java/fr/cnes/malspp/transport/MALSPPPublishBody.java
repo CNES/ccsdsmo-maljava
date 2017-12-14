@@ -45,24 +45,8 @@ public class MALSPPPublishBody extends MALSPPMessageBody implements MALPublishBo
     super(encodingContext, elementStreamFactory, encodedBody);
   }
 
-  public MALEncodedElement getEncodedUpdate(int listIndex, int updateIndex) throws MALException {
-    throw new MALException("Not implemented");
-  }
-
-  public Object getUpdate(int listIndex, int updateIndex) throws MALException {
-    throw new MALException("Not implemented");
-  }
-
-  public int getUpdateCount() throws MALException {
-    return getUpdateHeaderList().size();
-  }
-
   public UpdateHeaderList getUpdateHeaderList() throws MALException {
     return (UpdateHeaderList) getBodyElement(0, new UpdateHeaderList());
-  }
-
-  public List getUpdateList(int listIndex, List updateList) throws MALException {
-    return (List) getBodyElement(listIndex + 1, updateList);
   }
 
   public List[] getUpdateLists(List... updateLists) throws MALException {
@@ -77,5 +61,21 @@ public class MALSPPPublishBody extends MALSPPMessageBody implements MALPublishBo
       res[i] = (List) getBodyElement(i + 1, toDecode);
     }
     return res;
+  }
+
+  public List getUpdateList(int listIndex, List updateList) throws MALException {
+	    return (List) getBodyElement(listIndex + 1, updateList);
+	  }
+
+  public int getUpdateCount() throws MALException {
+    return getUpdateHeaderList().size();
+  }
+
+  public Object getUpdate(int listIndex, int updateIndex) throws MALException {
+    throw new MALException("Not implemented");
+  }
+
+  public MALEncodedElement getEncodedUpdate(int listIndex, int updateIndex) throws MALException {
+    throw new MALException("Not implemented");
   }
 }

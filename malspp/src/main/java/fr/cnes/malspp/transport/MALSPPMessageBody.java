@@ -39,8 +39,7 @@ import org.objectweb.util.monolog.api.Logger;
 
 public class MALSPPMessageBody implements MALMessageBody {
 
-  public final static Logger logger = fr.dyade.aaa.common.Debug
-      .getLogger(MALSPPMessageBody.class.getName());
+  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(MALSPPMessageBody.class.getName());
 
   private MALEncodingContext encodingContext;
 
