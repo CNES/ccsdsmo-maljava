@@ -2,11 +2,51 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>fr.cnes.mal</groupId>
+	<organization>
+		<name>CNES</name>
+		<url>http://www.cnes.fr</url>
+	</organization>
+
+	<groupId>fr.cnes.ccsds.mo</groupId>
 	<artifactId>mal-binary-encoding</artifactId>
-	<name>CCSDS MAL Binary encoding</name>
+	<version>3.2.3-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<version>3.2.2</version>
+	<name>CNES MAL Binary encoding</name>
+	<description>The CNES implementation of the CCSDS MAL Binary encoding</description>
+
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>https://raw.githubusercontent.com/ccsdsmo/maljava/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:ccsdsmo/maljava.git</connection>
+		<developerConnection>scm:git:git@github.com:ccsdsmo/maljava.git</developerConnection>
+		<url>https://github.com/ccsdsmo/maljava</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/ccsdsmo/maljava/issues</url>
+	</issueManagement>
+
+	<developers>
+		<developer>
+			<id>DavidFeliot</id>
+			<name>David Feliot</name>
+			<email>david.feliot@scalagent.com</email>
+			<url>https://github.com/DavidFeliot</url>
+		</developer>
+		<developer>
+			<id>freyssin</id>
+			<name>Andre Freyssinet</name>
+			<email>andre.freyssinet@scalagent.com</email>
+			<url>https://github.com/freyssin</url>
+		</developer>
+	</developers>
 
 	<build>
 		<plugins>
@@ -44,9 +84,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.ccsds.moims.mo</groupId>
-			<artifactId>cnes-mal-api</artifactId>
-			<version>${project.version}</version>
+			<groupId>fr.cnes.ccsds.mo</groupId>
+			<artifactId>mal-api</artifactId>
+			<version>3.2.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.ow2.joram</groupId>
