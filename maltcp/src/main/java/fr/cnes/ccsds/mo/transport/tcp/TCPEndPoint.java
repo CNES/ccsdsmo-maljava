@@ -78,14 +78,12 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 	}
 
 	public void startMessageDelivery() throws MALException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) Activating message delivery", localName);
+		TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint ({0}) Activating message delivery", localName);
 		active = true;
 	}
 
 	public void stopMessageDelivery() throws MALException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) Deactivating message delivery", localName);
+		TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint ({0}) Deactivating message delivery", localName);
 		active = false;
 	}
 
@@ -202,15 +200,12 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 	}
 
 	public void sendMessage(final MALMessage msg) throws MALTransmitErrorException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) Send message {1}", new Object[] { localName, ((TCPMessage) msg).header });
-		
+		TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Send message {1}", new Object[] { localName, ((TCPMessage) msg).header });
 		transport.sendMessage((TCPMessage) msg);
 	}
 
 	public void sendMessages(final MALMessage[] msgList) throws MALTransmitMultipleErrorException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) Send messages", localName);
+		TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Send messages", localName);
 		
 		final List<MALTransmitErrorException> v = new LinkedList<MALTransmitErrorException>();
 
@@ -257,22 +252,18 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 	 */
 
 	public void receiveMessage(final MALMessage pmsg) throws MALException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) insert message {1}", new Object[] { localName, pmsg.toString() });
+		TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) insert message {1}", new Object[] { localName, pmsg.toString() });
 		queue.offer(pmsg);
 	}
 	
 	//	public void receiveMessage(final MALMessage pmsg) throws MALException {
 	public void handleMessage(final MALMessage pmsg) throws MALException {
-		TCPTransport.RLOGGER.log(Level.INFO,
-				"TCPEndpoint ({0}) Delivering message", localName);
+		TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Delivering message", localName);
 		
 		if (active && (null != listener)) {
-			TCPTransport.RLOGGER.log(Level.INFO,
-					"TCPEndpoint ({0}) Deliver message active({1}) listener({2}) {3}",
+			TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Deliver message active({1}) listener({2}) {3}",
 					new Object[] { localName, active, listener, pmsg.toString() });
-// TODO (AF): ?????
-// Avoid a dead-lock in some tests.
+			// TODO (AF): Avoid a dead-lock in some tests.
 			new Thread() {
 				public void run() {
 					listener.onMessage(TCPEndPoint.this, pmsg);
@@ -298,10 +289,10 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 					MALMessage msg = queue.poll(1000L, TimeUnit.MILLISECONDS);
 					if (msg != null) handleMessage(msg);
 				} catch (InterruptedException exc) {
-					TCPTransport.RLOGGER.log(Level.WARNING,
-							"TCPEndpoint (" + localName + ") interupted)", exc);
+					TCPTransport.RLOGGER.log(Level.WARNING, 
+								"TCPEndpoint (" + localName + ") interupted)", exc);
 				} catch (MALException exc) {
-					TCPTransport.RLOGGER.log(Level.WARNING,
+					TCPTransport.RLOGGER.log(Level.WARNING, 
 							"TCPEndpoint (" + localName + ") error handling message)", exc);
 				}
 			}

@@ -60,7 +60,7 @@ public class TCPMessagePoller extends Thread {
 	 *            The decoder factory to create message decoders from.
 	 */
 	public TCPMessagePoller(TCPTransport transport, TCPConnectionHandler handler) {
-		TCPTransport.RLOGGER.log(Level.INFO, "Creates TCPMessagePoller " + this + " - " + handler);
+		TCPTransport.RLOGGER.info("Creates TCPMessagePoller " + this + " - " + handler);
 		this.transport = transport;
 		this.handler = handler;
 		setName(getClass().getName());
@@ -74,20 +74,19 @@ public class TCPMessagePoller extends Thread {
 		while (bContinue && !interrupted()) {
 			try {
 				// Get a message from the receiver and passes it to the transport.
-				TCPTransport.RLOGGER.log(Level.INFO, "Client @" + this.getId() + " wait message: {0}", remoteURI);
+				TCPTransport.RLOGGER.log(Level.FINE, "Client @" + this.getId() + " wait message: {0}", remoteURI);
 
 				byte[] msg = handler.readEncodedMessage();
-				TCPTransport.RLOGGER.log(Level.INFO, "Client @" + this.getId() + " readEncodedMessage: {0}", msg.length);
+				TCPTransport.RLOGGER.log(Level.FINE, "Client @" + this.getId() + " readEncodedMessage: {0}", msg.length);
 
 				if (null != msg) {
 					// msg should never be null
 					transport.receiveMessage(this, msg);
 				}
 
-				TCPTransport.RLOGGER.log(Level.INFO, "Client @" + this.getId() + " receive message: {0}", remoteURI);
+				TCPTransport.RLOGGER.log(Level.FINE, "Client @" + this.getId() + " receive message: {0}", remoteURI);
 			} catch (EOFException ex) {
-				TCPTransport.RLOGGER.log(Level.INFO,
-						"Client @" + this.getId() + " closing connection: {0}", remoteURI);
+				TCPTransport.RLOGGER.log(Level.INFO, "Client @" + this.getId() + " closing connection: {0}", remoteURI);
 
 				transport.closeConnection(remoteURI, this);
 				close();
@@ -95,8 +94,7 @@ public class TCPMessagePoller extends Thread {
 				// and terminate
 				bContinue = false;
 			} catch (IOException e) {
-				TCPTransport.RLOGGER.log(Level.WARNING,
-						"Cannot read message from client @" + this.getId(), e);
+				TCPTransport.RLOGGER.log(Level.WARNING, "Cannot read message from client @" + this.getId(), e);
 
 				transport.communicationError(remoteURI, this);
 				close();

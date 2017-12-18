@@ -64,8 +64,7 @@ public class TCPServerConnectionListener extends Thread {
 		try {
 			serverSocket.setSoTimeout(1000);
 		} catch (IOException e) {
-			RLOGGER.log(Level.WARNING,
-					"Error while setting connection timeout", e);
+			RLOGGER.log(Level.WARNING, "Error while setting connection timeout", e);
 		}
 
 		// setup socket and then listen for connections forever
@@ -88,7 +87,7 @@ public class TCPServerConnectionListener extends Thread {
 			}
 		}
 
-		RLOGGER.log(Level.WARNING, "TCPServerConnectionListener stopping");
+		RLOGGER.info("TCPServerConnectionListener stopping");
 		
 		// Cleaning
 		for (Thread pollerThread : pollerThreads) {
@@ -106,6 +105,6 @@ public class TCPServerConnectionListener extends Thread {
 			}
 		}
 		
-		RLOGGER.log(Level.WARNING, "TCPServerConnectionListener stopped");
+		RLOGGER.info("TCPServerConnectionListener stopped");
 	}
 }

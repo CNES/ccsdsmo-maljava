@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.ccsds.moims.mo.mal.MALArea;
 import org.ccsds.moims.mo.mal.MALContextFactory;
@@ -127,46 +128,11 @@ public class TCPMessage implements MALMessage, java.io.Serializable {
 		this.qosProperties = qosProperties;
 		byte[] packet1 = null;
 
-		System.out.println("\n\n\t##### total -> " + packet.length);
+		TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### total -> " + packet.length);
 		
 		if (readHeader) {
 			packet1 = header.decodeMessageHeader(packet);
-			
-			// TODO (AF): To remove (use only for debug).
-//			System.out.print("Packet[" + packet.length + "]=");
-//			for (int i=0; i<packet.length; i++)
-//				System.out.print(packet[i] + ", ");
-//			System.out.println("");
-//
-//			TCPMessageHeader header2 = null;
-//			try {
-//				header2 = (TCPMessageHeader) header.clone();
-//			} catch (CloneNotSupportedException e1) {
-//				// TODO Auto-generated catch block
-//				e1.printStackTrace();
-//			}
-//			
-//			try {
-//				header2.decodeMessageHeader1(packet);
-//				if (! header.equals(header2))
-//					throw new IOException("Bad header decoding !!");
-//			} catch (IOException e) {
-//				System.out.println("Header1 = " + header);
-//				System.out.println("Header2 = " + header2);
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//				System.exit(0);
-//			}
-			
-			// TODO (AF): To remove (use 2 encoding for header).
-//			MALEncodingContext ctx = new MALEncodingContext(header, null, 0, qosProperties, qosProperties);
-//			
-//			final ByteArrayInputStream bis = new ByteArrayInputStream(packet);
-//			FixedBinaryDecoder decoder = new FixedBinaryDecoder(bis);
-//			this.header = (TCPMessageHeader) header.decode(decoder);
-//			
-//			packet1 = decoder.getRemainingEncodedData();
-			System.out.println("\n\n\t##### remain -> " + packet1.length);
+			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### remain -> " + packet1.length);
 		}
 		this.header = header;
 
@@ -214,46 +180,11 @@ public class TCPMessage implements MALMessage, java.io.Serializable {
 
 			if (null != header) {
 				header.encodeMessageHeader(out);
-				
-				// TODO (AF): To remove (use only for debug).
-//				ByteArrayOutputStream bos1 = new ByteArrayOutputStream();
-//				header.encodeMessageHeader(bos1);
-//
-//				ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
-//				header.encodeMessageHeader(bos2);
-//
-//				
-//				byte[] array1 = bos1.toByteArray();
-//				System.out.print("Array1[" + array1.length + "]=");
-//				for (int i=0; i<array1.length; i++)
-//					System.out.print(array1[i] + ", ");
-//				System.out.println("");
-//
-//				byte[] array2 = bos2.toByteArray();
-//				System.out.print("Array2[" + array2.length + "]=");
-//				for (int i=0; i<array2.length; i++)
-//					System.out.print(array2[i] + ", ");
-//				System.out.println("");
-//
-//				if (! Arrays.equals(array1, array2)) {
-//					System.out.println("Bad encoding !!");
-//					System.exit(0);
-//				}
-					
-				// TODO (AF): To remove (use 2 encoding for header).
-//				// First encode the header with FixedBinaryEncoder.
-//				MALElementOutputStream hos = new FixedBinaryElementOutputStream(lowLevelOutputStream);
-//				hos.writeElement(header, ctx);
-//				// TODO (AF): To remove.
-////				enc.writeElement(header, ctx);
-				
-				// TODO (AF): To remove.
-				System.out.println("\n\n\t##### header -> " + ((ByteArrayOutputStream) out).size());
+				TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### header -> " + ((ByteArrayOutputStream) out).size());
 			} else {
 				throw new MALException("Internal error encoding message, header NULL");
 			}
-			// TODO (AF): To remove.
-			System.out.println("\n\n\t##### body=" + body);
+			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### body=" + body);
 
 			// Now encode the body with the specified encoding
 			body.encodeMessageBody(streamFactory, enc, out, header.getInteractionStage(), ctx);
@@ -261,7 +192,7 @@ public class TCPMessage implements MALMessage, java.io.Serializable {
 			// Be careful, flush method throws a NPE with encoding wrapper.
 //			enc.flush();
 			
-			System.out.println("\n\n\t##### total -> " + ((ByteArrayOutputStream) out).size());
+			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### total -> " + ((ByteArrayOutputStream) out).size());
 		} catch (Exception ex) {
 			throw new MALException("Internal error encoding message", ex);
 		}

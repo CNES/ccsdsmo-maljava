@@ -146,8 +146,7 @@ public class TCPTransport implements MALTransport {
 		this.qosProperties = properties;
 		this.streamFactory = MALElementStreamFactory.newFactory(PROTOCOL_SCHEME, properties);
 
-		RLOGGER.log(Level.INFO,
-				"Starting TCP Server Transport " + PROTOCOL_SCHEME + "\n" + properties);		
+		RLOGGER.info("Starting TCP Server Transport " + PROTOCOL_SCHEME + "\n" + properties);		
 		if (properties != null) {
 			// host / ip adress
 			if (properties.containsKey("org.ccsds.moims.mo.mal.transport.maltcp.host")) {
@@ -181,8 +180,7 @@ public class TCPTransport implements MALTransport {
 
 		if (serverHost != null) {
 			// this is also a server (i.e. provides some services)
-			RLOGGER.log(Level.INFO,
-					"Starting TCP Server Transport on port {0}", serverPort);
+			RLOGGER.log(Level.INFO, "Starting TCP Server Transport on port {0}", serverPort);
 
 			// start server socket on predefined port / interface
 			try {
@@ -195,8 +193,7 @@ public class TCPTransport implements MALTransport {
 					serverConnectionListener.start();
 				}
 
-				RLOGGER.log(Level.INFO,
-						"Started TCP Server Transport on port {0}", serverPort);
+				RLOGGER.log(Level.INFO, "Started TCP Server Transport on port {0}", serverPort);
 			} catch (Exception exc) {
 				RLOGGER.log(Level.SEVERE,
 						"Error starting TCP Server Transport on port " + serverPort, exc);
@@ -257,7 +254,7 @@ public class TCPTransport implements MALTransport {
 		TCPEndPoint endpoint = endpointRoutingMap.get(strRoutingName);
 
 		if (null == endpoint) {
-			RLOGGER.log(Level.INFO, "TCP Creating endpoint " + localName + " : " + strRoutingName);
+			RLOGGER.info("TCP Creating endpoint " + localName + " : " + strRoutingName);
 			
 			endpoint = new TCPEndPoint(this, localName, strRoutingName, baseURI + strRoutingName);
 			endpointMalMap.put(localName, endpoint);
@@ -371,7 +368,7 @@ public class TCPTransport implements MALTransport {
 	}
 
 	public void close() throws MALException {
-		RLOGGER.log(Level.WARNING, "TCPTransport.close()");
+		RLOGGER.info("TCPTransport.close()");
 		synchronized (this) {
 			for (TCPMessagePoller entry : pollerThreads) {
 				entry.close();
@@ -403,28 +400,21 @@ public class TCPTransport implements MALTransport {
 	}
 	
 	public void sendMessage(TCPMessage msg) throws MALTransmitErrorException, IllegalArgumentException {
-//		// first check if its actually a message to ourselves
-//		String endpointUriPart = getRoutingPart(msg.getHeader().getURITo().getValue());
-
 		try {
 			// get the root URI, (e.g. tcpip://10.0.0.1:61616 )
 			String destinationURI = msg.getHeader().getURITo().getValue();
 			String remoteRootURI = getRootURI(destinationURI);
 
-			RLOGGER.log(Level.INFO,
+			RLOGGER.log(Level.FINE,
 					"TCP sending msg. Target root URI: {0} full URI:{1} ## {2} ##",
 					new Object[] { remoteRootURI, destinationURI, msg.getHeader().getTransactionId() });
 
 			// Get outgoing channel
-			// TODO (AF): to remove.
-//          TCPConnectionHandler sender = manageCommunicationChannel(msg, false, null);
-
 			TCPConnectionHandler handler = outgoingDataChannels.get(remoteRootURI);
 			if (null == handler) {
 				// we do not have any channel for this URI
 				// try to create a set of connections to this URI
-				RLOGGER.log(Level.INFO,
-						"TCP received request to create connections to URI: {0}", remoteRootURI);
+				RLOGGER.log(Level.FINE, "TCP received request to create connections to URI: {0}", remoteRootURI);
 
 				try {
 					// create new sender for this URI
@@ -437,102 +427,24 @@ public class TCPTransport implements MALTransport {
 									null), null);
 				}
 			}
-			RLOGGER.log(Level.INFO,
-					"TCP send message using: {0}", handler);
+			RLOGGER.log(Level.FINE, "TCP send message using: {0}", handler);
 
 			handler.sendEncodedMessage(internalEncodeMessage(msg));
 
-			RLOGGER.log(Level.INFO, "TCP finished Sending data to {0}", remoteRootURI);
+			RLOGGER.log(Level.FINE, "TCP finished Sending data to {0}", remoteRootURI);
 		} catch (MALTransmitErrorException e) {
 			// this stops any true MAL exceptions getting caught by the
 			// generic catch all below
-			RLOGGER.log(Level.SEVERE,
-					"Interrupted while sending message", e);
+			RLOGGER.log(Level.SEVERE, "Interrupted while sending message", e);
 			throw e;
 		} catch (InterruptedException e) {
-			RLOGGER.log(Level.SEVERE,
-					"Interrupted while waiting for data reply", e);
-			throw new MALTransmitErrorException(msg.getHeader(),
-					new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER,
-							null), null);
+			RLOGGER.log(Level.SEVERE, "Interrupted while waiting for data reply", e);
+			throw new MALTransmitErrorException(msg.getHeader(), new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER, null), null);
 		} catch (Exception t) {
 			RLOGGER.log(Level.SEVERE, "TCP could not send message!", t);
-			throw new MALTransmitErrorException(msg.getHeader(),
-					new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER,
-							null), null);
+			throw new MALTransmitErrorException(msg.getHeader(), new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER, null), null);
 		}
 	}
-
-//	/**
-//	 * This method checks if there is a communication channel for sending a
-//	 * particular message and in addition stores the communication channel on
-//	 * incoming messages in case of bi-directional transports for re-use. If
-//	 * there is no communication channel for sending a message the transport
-//	 * creates and registers it.
-//	 *
-//	 * @param msg
-//	 *            The message received or to be sent
-//	 * @param isIncomingMsgDirection
-//	 *            the message direction
-//	 * @param receptionHandler
-//	 *            the message reception handler, null if the message is an
-//	 *            outgoing message
-//	 * @return returns an existing or newly created message sender
-//	 * @throws MALTransmitErrorException
-//	 *             in case of communication problems
-//	 */
-//	protected synchronized TCPConnectionHandler manageCommunicationChannel(
-//			TCPMessage msg,
-//			boolean isIncomingMsgDirection,
-//			TCPMessagePoller poller)
-//			throws MALTransmitErrorException {
-//		TCPConnectionHandler sender = null;
-//		if (isIncomingMsgDirection) {
-//			// incoming msg
-//			if ((null != poller) && (null == poller.getRemoteURI())) {
-//				// transport supports bi-directional communication this is the first message received
-//				// from this reception handler add the remote base URI it is receiving messages from
-//				String sourceURI = msg.getHeader().getURIFrom().getValue();
-//				String sourceRootURI = getRootURI(sourceURI);
-//
-//				poller.setRemoteURI(sourceRootURI);
-//
-//				// register the communication channel with this URI if needed
-//				sender = registerConnectionHandler(poller.getConnectionHandler(), sourceRootURI);
-//			}
-//		} else {
-//			// outgoing message
-//			// get target URI
-//			String remoteRootURI = getRootURI(msg.getHeader().getURITo().getValue());
-//
-//			// get sender if it exists
-//			sender = outgoingDataChannels.get(remoteRootURI);
-//
-//			if (null == sender) {
-//				// we do not have any channel for this URI
-//				// try to create a set of connections to this URI
-//				RLOGGER.log(Level.INFO,
-//						"TCP received request to create connections to URI: {0}", remoteRootURI);
-//
-//				try {
-//					// create new sender for this URI
-//					sender = registerConnectionHandler(
-//							createMessageSender(msg, remoteRootURI), remoteRootURI);
-//				} catch (MALException e) {
-//					RLOGGER.log(Level.WARNING, "TCP could not connect to :" + remoteRootURI, e);
-//					throw new MALTransmitErrorException(msg.getHeader(),
-//							new MALStandardError(
-//									MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER,
-//									null), null);
-//				}
-//			}
-//		}
-//		
-//		RLOGGER.log(Level.INFO,
-//				"TCP manageCommunicationChannel: {0}", sender);
-//
-//		return sender;
-//	}
 
 	/**
 	 * Registers a connection handler for a given root URI.
@@ -544,20 +456,16 @@ public class TCPTransport implements MALTransport {
 	 */
 	protected synchronized TCPConnectionHandler registerConnectionHandler(
 			TCPConnectionHandler handler, String remoteRootURI) {
-		RLOGGER.log(Level.INFO,
-				"TCP register connection to URI: {0}", remoteRootURI);
+		RLOGGER.log(Level.INFO, "TCP register connection to URI: {0}", remoteRootURI);
 		
 		// Check if there is already a TCP channel for this URI
 		TCPConnectionHandler h = outgoingDataChannels.get(remoteRootURI);
 		if (h != null) {
 			// There is already a TCP channel for this URI
-			RLOGGER.log(Level.WARNING,
-					"TCP connection handler already registerd for URI:" + remoteRootURI, new Exception());
-			// TODO (AF): A connection already exist for this URI ?
+			RLOGGER.log(Level.WARNING, "TCP connection handler already registerd for URI:" + remoteRootURI, new Exception());
 		} else {
 			// There is no TCP channel for this URI, register it
-			RLOGGER.log(Level.INFO,
-					"TCP registering connection handler for URI:" + remoteRootURI);
+			RLOGGER.fine("TCP registering connection handler for URI:" + remoteRootURI);
 			outgoingDataChannels.put(remoteRootURI, handler);
 			h = handler;
 		}
@@ -575,8 +483,7 @@ public class TCPTransport implements MALTransport {
 			return data;
 		} catch (MALException ex) {
 			RLOGGER.log(Level.SEVERE, "TCP could not encode message!", ex);
-			throw new MALTransmitErrorException(msg.getHeader(),
-					new MALStandardError(MALHelper.BAD_ENCODING_ERROR_NUMBER, null), null);
+			throw new MALTransmitErrorException(msg.getHeader(), new MALStandardError(MALHelper.BAD_ENCODING_ERROR_NUMBER, null), null);
 		}
 	}
 
@@ -602,10 +509,8 @@ public class TCPTransport implements MALTransport {
 				commsChannel.close();
 				outgoingDataChannels.remove(localUriTo);
 			} else {
-				RLOGGER.log(
-						Level.WARNING,
-						"Could not locate associated data to close communications for URI : {0} ",
-						localUriTo);
+				RLOGGER.log(Level.WARNING,
+						"Could not locate associated data to close communications for URI : {0} ", localUriTo);
 			}
 		}
 
@@ -623,143 +528,10 @@ public class TCPTransport implements MALTransport {
 	 *            the connection handler that received this message
 	 * @param receptionHandler
 	 */
-	public void communicationError(String uriTo,
-			TCPMessagePoller poller) {
+	public void communicationError(String uriTo, TCPMessagePoller poller) {
 		RLOGGER.log(Level.WARNING, "TCP Communication Error with {0} ", uriTo);
-
 		closeConnection(uriTo, poller);
 	}
-
-//	/**
-//	 * This Runnable task is responsible for processing the already decoded
-//	 * message. It holds a queue of messages split on transaction id so that
-//	 * messages with the same transaction id get processed in reception order.
-//	 *
-//	 */
-//	private final class TCPIncomingMessageProcessor implements Runnable {
-//		private final Queue<TCPIncomingMessageHolder> malMsgs = new ArrayDeque<TCPIncomingMessageHolder>();
-//		private boolean finished = false;
-//
-//		/**
-//		 * Constructor
-//		 *
-//		 * @param malMsg
-//		 *            The MAL message.
-//		 */
-//		public TCPIncomingMessageProcessor(final TCPIncomingMessageHolder malMsg) {
-//			malMsgs.add(malMsg);
-//		}
-//
-//		/**
-//		 * Adds a message to the internal queue. If the thread associated with
-//		 * this executor has finished it resets the flag and returns true to
-//		 * indicate that it should be resubmitted for more processing to the
-//		 * Executor pool.
-//		 *
-//		 * @param malMsg
-//		 *            The decoded message.
-//		 * @return True if this needs to be resubmitted to the processing
-//		 *         executor pool.
-//		 */
-//		public synchronized boolean addMessage(
-//				final TCPIncomingMessageHolder malMsg) {
-//			malMsgs.add(malMsg);
-//
-//			if (finished) {
-//				finished = false;
-//
-//				// need to resubmit this to the processing threads
-//				return true;
-//			}
-//
-//			return false;
-//		}
-//
-//		/**
-//		 * Returns true if this thread has finished processing its queue.
-//		 *
-//		 * @return True if finished processing queue.
-//		 */
-//		public boolean isFinished() {
-//			return finished;
-//		}
-//
-//		public void run() {
-//			TCPIncomingMessageHolder msg;
-//
-//			synchronized (this) {
-//				msg = malMsgs.poll();
-//			}
-//
-//			while (null != msg) {
-//				// send message for further processing and routing
-//				processIncomingMessage(msg.malMsg);
-//
-//				synchronized (this) {
-//					msg = malMsgs.poll();
-//
-//					if (null == msg) {
-//						finished = true;
-//					}
-//				}
-//			}
-//		}
-//	}
-	
-//	/**
-//	 * This Runnable task is responsible for decoding newly arrived MAL Messages
-//	 * and passing to the transport executor.
-//	 */
-//	private static class TCPIncomingMessageReceiver implements Runnable {
-//		protected final TCPTransport transport;
-//		protected final TCPMessagePoller poller;
-//		protected final TCPIncomingByteMessageDecoder decoder;
-//
-//		/**
-//		 * Constructor
-//		 *
-//		 * @param transport
-//		 *            Containing transport.
-//		 * @param receptionHandler
-//		 *            The reception handler to pass them to.
-//		 * @param decoder
-//		 *            The class responsible for decoding the message from the
-//		 *            incoming connection
-//		 */
-//		protected TCPIncomingMessageReceiver(final TCPTransport transport,
-//				final TCPMessagePoller poller,
-//				final TCPIncomingByteMessageDecoder decoder) {
-//			this.transport = transport;
-//			this.poller = poller;
-//			this.decoder = decoder;
-//		}
-//
-//		/**
-//		 * This method processes an incoming message and then forwards it for
-//		 * routing to the appropriate message queue. The processing consists of
-//		 * transforming the raw message to the appropriate format and then
-//		 * registering if necessary the communication channel.
-//		 */
-//		public void run() {
-//			try {
-//				TCPIncomingMessageHolder msg = decoder.decodeAndCreateMessage();
-//				TCPTransport.RLOGGER.log(Level.FINE,
-//						"TCP Receving message : {0}", new Object[] {
-//								msg.malMsg.getHeader().getTransactionId() });
-//				// register communication channel if needed
-//				transport.manageCommunicationChannel(msg.malMsg, true, poller);
-//				transport.receiveIncomingMessage(msg);
-//			} catch (MALException e) {
-//				TCPTransport.RLOGGER.log(Level.WARNING,
-//						"TCP Error occurred when decoding data : {0}", e);
-//				transport.communicationError(null, poller);
-//			} catch (MALTransmitErrorException e) {
-//				TCPTransport.RLOGGER.log(Level.WARNING,
-//						"TCP Error occurred when decoding data : {0}", e);
-//				transport.communicationError(null, poller);
-//			}
-//		}
-//	}
 
 	/**
 	 * This method processes an incoming message by routing it to the
@@ -773,19 +545,17 @@ public class TCPTransport implements MALTransport {
 	 */
 	protected void processIncomingMessage(final TCPMessage msg) {
 		try {
-			RLOGGER.log(Level.INFO, "TCP Processing message : " + msg.getHeader().getTransactionId());
+			RLOGGER.fine("TCP Processing message : " + msg.getHeader().getTransactionId());
 
 			String endpointUriPart = getRoutingPart(msg.getHeader().getURITo().getValue());
 
 			final TCPEndPoint endpoint = endpointRoutingMap.get(endpointUriPart);
 
 			if (null != endpoint) {
-				RLOGGER.log(Level.INFO,
-						"TCP Passing to message handler " + endpoint.getLocalName());
+				RLOGGER.fine("TCP Passing to message handler " + endpoint.getLocalName());
 				endpoint.receiveMessage(msg);
 			} else {
-				RLOGGER.log(Level.WARNING,
-						"TCP Message handler NOT FOUND {0}", new Object[] { endpointUriPart });
+				RLOGGER.log(Level.FINE, "TCP Message handler NOT FOUND {0}", new Object[] { endpointUriPart });
 				returnErrorMessage(
 						null, msg,
 						MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER,
@@ -892,20 +662,17 @@ public class TCPTransport implements MALTransport {
 
 					sendMessage(retMsg);
 				} else {
-					RLOGGER.log(
-							Level.WARNING,
+					RLOGGER.log(Level.WARNING,
 							"TCP Unable to return error number ({0}) as no endpoint supplied : {1}",
 							new Object[] { errorNumber, oriMsg.getHeader() });
 				}
 			} else {
-				RLOGGER.log(
-						Level.WARNING,
+				RLOGGER.log(Level.WARNING,
 						"TCP Unable to return error number ({0}) as already a return message : {1}",
 						new Object[] { errorNumber, oriMsg.getHeader() });
 			}
 		} catch (MALTransmitErrorException ex) {
-			RLOGGER.log(
-					Level.WARNING,
+			RLOGGER.log(Level.WARNING,
 					"TCP Error occurred when attempting to return previous error : {0}",
 					ex);
 		}
@@ -917,15 +684,12 @@ public class TCPTransport implements MALTransport {
 	
 	public void receiveMessage(TCPMessagePoller poller, byte[] rawMsg) {
 		try {
-			TCPTransport.RLOGGER.log(Level.INFO, "TCP Receiving message");
+			TCPTransport.RLOGGER.log(Level.FINE, "TCP Receiving message");
 			TCPMessage malMsg = createMessage(rawMsg, poller.getRemoteBaseURI());
-			TCPTransport.RLOGGER.log(Level.INFO,
+			TCPTransport.RLOGGER.log(Level.FINE,
 					"TCP Receiving message : {0}", new Object[] { malMsg.getHeader().getTransactionId() });
 
 			// Register communication channel if needed.
-			// TODO (AF): to remove.
-			//			manageCommunicationChannel(malMsg, true, poller);
-
 			TCPConnectionHandler handler = null;
 			if ((null != poller) && (null == poller.getRemoteURI())) {
 				// transport supports bi-directional communication this is the first message received
@@ -938,13 +702,11 @@ public class TCPTransport implements MALTransport {
 				// register the communication channel with this URI if needed
 				handler = registerConnectionHandler(poller.getConnectionHandler(), sourceRootURI);
 			}
-			RLOGGER.log(Level.INFO,
-					"TCP receive message using: {0}", handler);
+			RLOGGER.log(Level.FINE, "TCP receive message using: {0}", handler);
 
 			processIncomingMessage(malMsg);
 		} catch (MALException e) {
-			TCPTransport.RLOGGER.log(Level.WARNING,
-					"TCP Error occurred when decoding data : {0}", e);
+			TCPTransport.RLOGGER.log(Level.WARNING, "TCP Error occurred when decoding data : {0}", e);
 			communicationError(null, poller);
 		}
 	}
@@ -971,8 +733,7 @@ public class TCPTransport implements MALTransport {
 	protected TCPConnectionHandler createConnectionHandler(
 			TCPMessage msg,
 			String remoteRootURI) throws MALException, MALTransmitErrorException {
-		RLOGGER.log(Level.INFO,
-				"TCP create connection to URI: {0}", remoteRootURI);
+		RLOGGER.log(Level.INFO, "TCP create connection to URI: {0}", remoteRootURI);
 
 		try {
 			// decode target address
@@ -996,32 +757,22 @@ public class TCPTransport implements MALTransport {
 			pollerThreads.add(poller);
 			poller.start();
 			
-			RLOGGER.log(Level.INFO,
-					"TCP connection created: {0}", handler);
+			RLOGGER.log(Level.FINE, "TCP connection created: {0}", handler);
 
 			return handler;
 		} catch (NumberFormatException nfe) {
-			RLOGGER.log(Level.WARNING,
-					"Have no means to communicate with client URI : {0}",
-					remoteRootURI);
-			throw new MALException(
-					"Have no means to communicate with client URI : "
-							+ remoteRootURI);
+			RLOGGER.log(Level.WARNING, "Have no means to communicate with client URI : {0}", remoteRootURI);
+			throw new MALException("Have no means to communicate with client URI : " + remoteRootURI);
 		} catch (UnknownHostException e) {
-			RLOGGER.log(Level.WARNING, "TCPIP could not find host :{0}",
-					remoteRootURI);
-			RLOGGER.log(Level.FINE, "TCPIP could not find host :"
-					+ remoteRootURI, e);
-			throw new MALTransmitErrorException(msg.getHeader(),
-					new MALStandardError(MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER, null), new HashMap());
+			RLOGGER.log(Level.WARNING, "TCPIP could not find host :{0}", remoteRootURI);
+			throw new MALTransmitErrorException(msg.getHeader(), 
+					new MALStandardError(MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER, null),
+					new HashMap());
 		} catch (java.net.ConnectException e) {
-			RLOGGER.log(Level.WARNING, "TCPIP could not connect to :{0}",
-					remoteRootURI);
-			RLOGGER.log(Level.FINE, "TCPIP could not connect to :"
-					+ remoteRootURI, e);
-			throw new MALTransmitErrorException(
-					msg.getHeader(),
-					new MALStandardError(MALHelper.DESTINATION_TRANSIENT_ERROR_NUMBER, null), null);
+			RLOGGER.log(Level.WARNING, "TCPIP could not connect to :{0}", remoteRootURI);
+			throw new MALTransmitErrorException(msg.getHeader(),
+					new MALStandardError(MALHelper.DESTINATION_TRANSIENT_ERROR_NUMBER, null),
+					null);
 		} catch (IOException e) {
 			// there was a communication problem, we need to clean up the
 			// objects we created in the meanwhile

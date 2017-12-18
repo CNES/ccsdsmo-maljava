@@ -27,8 +27,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.logging.Level;
-
 import org.ccsds.moims.mo.mal.MALDecoder;
 import org.ccsds.moims.mo.mal.MALEncoder;
 import org.ccsds.moims.mo.mal.MALException;
@@ -568,26 +566,6 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		encodeBinaryUnsignedInt(out, str.length);
 		out.write(str);
 	}
-
-//	void encodeBinaryNullableString(OutputStream out, final String value) throws IOException {
-//		if (null != value) {
-//			encodeBinaryString(out, value);
-//		} else {
-//			encodeBinaryBytes(out, (byte[]) null);
-//		}
-//	}
-
-	// TODO (AF): Avoid useless presence byte
-//	void encodeBinaryIdentifierList(OutputStream out, final IdentifierList value) throws IOException {
-//		encodeBinaryUnsignedInt(out, value.size());
-//	    for (int i = 0; i < value.size(); i++) {
-//	    	Identifier id = value.get(i);
-//	    	if (id == null)
-//	    		encodeBinaryNullableString(out, null);
-//	    	else
-//	    		encodeBinaryNullableString(out, id.getValue());
-//	    }
-//	}
 	
 	void encodeBinaryIdentifierList(OutputStream out, final IdentifierList value) throws IOException {
 		encodeBinaryUnsignedInt(out, value.size());
@@ -603,10 +581,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 	}
 	
 	public void encodeMessageHeader(OutputStream out) throws IllegalArgumentException, IOException, MALException {
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ >> " + this.toString());
-
-		// First part of the header is encoded with FixedBinaryEncoder.
-//		final FixedBinaryEncoder encoder1 = new FixedBinaryEncoder(lowLevelOutputStream);
+		TCPTransport.RLOGGER.finest("@@@@@ >> " + this.toString());
 
 		// Encode the version number.
 	    encodeFixedBinaryUOctet(out, new UOctet((short) (getSDUType() | 0x20)));
@@ -617,7 +592,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		encodeFixedBinaryUOctet(out, areaVersion);
 
 		encodeFixedBinaryUOctet(out, new UOctet((short) (getErrorFlag() | getQoSLevelBits() | getSessionBits())));
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ >> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
+	    TCPTransport.RLOGGER.finest("@@@@@ >> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
 	    
 	    encodeFixedBinaryLong(out, transactionId);
 
@@ -641,13 +616,8 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		// The real message length is encoded later in TCPTransportDataTransceiver.sendEncoded() method.
 		out.write(new byte[4]);
 		
-		// Second part of the header is encoded with BinaryEncoder.
-//		final BinaryEncoder encoder2 = new BinaryEncoder(lowLevelOutputStream);
-		
 		// Always encode URI's (Allowed by the specification).
 		encodeBinaryString(out, URIFrom.getValue());
-		// TODO (AF): Encode only routing part of remote URI
-//		encodeBinaryString(out, URITo.getValue());
 		encodeBinaryString(out, TCPTransport.getRoutingPart(URITo.getValue()));
 		
 		if (priorityFlag != 0) encodeBinaryUnsignedLong(out, priority.getValue());
@@ -717,20 +687,16 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 	      int shift = 0;
 	      while ((buf[off] & 0x80L) != 0) {
 	        result |= (buf[off] & 0x7FL) << shift;
-			// TODO (AF): To remove (use only for debug).
-//	        System.out.println("buf[" + off + "]=" + buf[off] + " -> " + result);
 	        shift += 7; off += 1;
 	      }
 	      result |= ((buf[off] & 0x7FL) << shift);
-	      // TODO (AF): To remove (use only for debug).
-//	      System.out.println("buf[" + off + "]=" + buf[off] + " -> " + result);
 	      off += 1;
 	      return result;
 	    }
 
 	    String decodeBinaryString() throws IOException {
 	    	final int len = decodeBinaryUnsignedInt();
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode String len=" + len);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode String len=" + len);
 	    	if (len >= 0) {
 	    		final String str = new String(buf, off, len, Charset.forName("UTF-8"));
 	    		off += len;
@@ -748,17 +714,6 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 	    	}
 	    	return null;
 		}
-
-		// TODO (AF): Remove useless presence flags
-//		IdentifierList decodeBinaryIdentifierList() throws IOException {
-//			IdentifierList list = new IdentifierList();
-//			int size = decodeBinaryUnsignedInt();
-//			for (int i=0; i<size; i++) {
-//				Identifier id = new Identifier(decodeBinaryNullableString());
-//				list.add(id);
-//			}
-//			return list;
-//		}
 
 		IdentifierList decodeBinaryIdentifierList() throws IOException {
 			IdentifierList list = new IdentifierList();
@@ -811,39 +766,37 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		
 		short tmpUOctet = buffer.decodeFixedBinaryUOctet().getValue();
 		
-		// TODO (AF): Remove extras logging.
-		
 		short version = (short) ((tmpUOctet >> 5) & 0x0007);
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << version=" + version);
+		TCPTransport.RLOGGER.finest("@@@@@ << version=" + version);
 		
 		short sduType = (short) (tmpUOctet & 0x001F);
 		interactionType = getInteractionType(sduType);
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << type=" + interactionType);
+		TCPTransport.RLOGGER.finest("@@@@@ << type=" + interactionType);
 		interactionStage = getInteractionStage(sduType);
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << stage=" + interactionStage);
+		TCPTransport.RLOGGER.finest("@@@@@ << stage=" + interactionStage);
 		
 		serviceArea = buffer.decodeFixedBinaryUShort();
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << area=" + serviceArea);
+		TCPTransport.RLOGGER.finest("@@@@@ << area=" + serviceArea);
 		service = buffer.decodeFixedBinaryUShort();
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << service=" + service);
+		TCPTransport.RLOGGER.finest("@@@@@ << service=" + service);
 		operation = buffer.decodeFixedBinaryUShort();
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << operation=" + operation);
+		TCPTransport.RLOGGER.finest("@@@@@ << operation=" + operation);
 		
 		areaVersion = buffer.decodeFixedBinaryUOctet();
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << areaVersion=" + areaVersion);
+		TCPTransport.RLOGGER.finest("@@@@@ << areaVersion=" + areaVersion);
 		
 		tmpUOctet = buffer.decodeFixedBinaryUOctet().getValue();
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + tmpUOctet);
+	    TCPTransport.RLOGGER.finest("@@@@@ << " + tmpUOctet);
 		isErrorMessage = ((tmpUOctet & ERROR_MASK) != 0);
 		QoSlevel = QoSLevel.fromOrdinal((tmpUOctet & QOS_LEVEL_MASK) >> 4);
 		session = SessionType.fromOrdinal(tmpUOctet & SESSION_MASK);
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
+	    TCPTransport.RLOGGER.finest("@@@@@ << " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
 
 		transactionId = buffer.decodeFixedBinaryLong();
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << transactionId=" + transactionId);
+	    TCPTransport.RLOGGER.finest("@@@@@ << transactionId=" + transactionId);
 		
 		short flags = buffer.decodeFixedBinaryUOctet().getValue();
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << flags=" + flags);
+	    TCPTransport.RLOGGER.finest("@@@@@ << flags=" + flags);
 		
 		// Source and Destination URI could be omitted by some implementations.
 		int sourceFlag = flags & SOURCE_FLAG;
@@ -857,7 +810,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		int authenticationIdFlag = flags & AUTHENTICATION_FLAG;
 
 		decodingId = buffer.decodeFixedBinaryUOctet();
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << decodingId=" + decodingId);
+	    TCPTransport.RLOGGER.finest("@@@@@ << decodingId=" + decodingId);
 		
 		// Message length, this value is already read in TCPTransportDataTransceiver.readEncoded() method.
 		buffer.skip(4);
@@ -867,55 +820,55 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 		// If source URI is not present or complete we should build it.
 		if (sourceFlag != 0) {
 			URIFrom = new URI(buffer.decodeBinaryString());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Get URI From=" + URIFrom);
+			TCPTransport.RLOGGER.finest("@@@@@ << Get URI From=" + URIFrom);
 			if (! URIFrom.getValue().startsWith(protocol)) {
 				URIFrom = new URI(remoteBaseURI + URIFrom.getValue());
 			}
 		} else {
 			URIFrom = new URI(remoteBaseURI);
 		}
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << remoteBaseURI=" + remoteBaseURI + " -> URIFrom=" + URIFrom);
+	    TCPTransport.RLOGGER.finest("@@@@@ << remoteBaseURI=" + remoteBaseURI + " -> URIFrom=" + URIFrom);
 
 		// If destination URI is not present or complete we should build it.
 		if (destinationFlag != 0) {
 			URITo =  new URI(buffer.decodeBinaryString());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Get URI To=" + URITo);
+			TCPTransport.RLOGGER.finest("@@@@@ << Get URI To=" + URITo);
 			if (! URITo.getValue().startsWith(protocol)) {
 				URITo = new URI(localBaseURI + URITo.getValue());
 			}
 		} else {
 			URITo = new URI(localBaseURI);
 		}
-	    TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << localBaseURI=" + localBaseURI + " -> URITo=" + URITo);
+	    TCPTransport.RLOGGER.finest("@@@@@ << localBaseURI=" + localBaseURI + " -> URITo=" + URITo);
 		
 		if (priorityFlag != 0) {
 			priority = new UInteger(buffer.decodeBinaryUnsignedInt());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode priority=" + priority);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode priority=" + priority);
 		}
 		if (timestampFlag != 0) {
 			// TODO (AF): Time format ??
 //			timestamp = new Time(buffer.decodeBinaryUnsignedLong());
 			timestamp = new Time(buffer.decodeFixedBinaryLong());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode timestamp=" + timestamp);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode timestamp=" + timestamp);
 		}
 		if (networkZoneFlag != 0) {
 			networkZone = new Identifier(buffer.decodeBinaryString());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode networkZone=" + networkZone);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode networkZone=" + networkZone);
 		}
 		if (sessionNameFlag != 0) {
 			sessionName = new Identifier(buffer.decodeBinaryString());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode sessionName=" + sessionName);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode sessionName=" + sessionName);
 		}
 		if (domainFlag != 0) {
 			domain = buffer.decodeBinaryIdentifierList();
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode domain=" + domain);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode domain=" + domain);
 		}
 		if (authenticationIdFlag != 0) {
 			authenticationId = new Blob(buffer.decodeBinaryBlob());
-			TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << Decode authenticationId=" + authenticationId);
+			TCPTransport.RLOGGER.finest("@@@@@ << Decode authenticationId=" + authenticationId);
 		}
 		
-		TCPTransport.RLOGGER.log(Level.WARNING, "@@@@@ << " + this.toString());
+		TCPTransport.RLOGGER.finest("@@@@@ << " + this.toString());
 		} catch (IOException exc) {
 			throw new MALException(exc.getMessage());
 		}

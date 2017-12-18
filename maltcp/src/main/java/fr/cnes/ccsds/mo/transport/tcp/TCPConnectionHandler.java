@@ -55,13 +55,11 @@ public class TCPConnectionHandler {
 		dos = new DataOutputStream(socket.getOutputStream());
 		dis = new DataInputStream(socket.getInputStream());
 
-		TCPTransport.RLOGGER.log(Level.WARNING, "Creates TCPConnectionHandler: " + this);
+		TCPTransport.RLOGGER.fine("Creates TCPConnectionHandler: " + this);
 	}
 
 	static final int HEADER_FIXED_SIZE = 23;
 	static final int MESSAGE_LENGTH_OFFSET = 19;
-	// TODO (AF): To remove (framing)
-	static final int MESSAGE_LENGTH_OFFSET_TEST = 0;
 
 	void MalBinaryWrite32(byte[] data, int offset, int value) {
 		data[offset + 0] = (byte) (value >> 24);
@@ -78,18 +76,14 @@ public class TCPConnectionHandler {
 
 	public void sendEncodedMessage(byte[] packet) throws IOException {
 		// TODO (AF): for Debug
-		StringBuffer strbuf = new StringBuffer();
-		for (int i = 0; i <packet.length; i++)
-			strbuf.append(packet[i] & 0xFF).append(' ');
-		TCPTransport.RLOGGER.log(Level.WARNING,
-				"sendEncodedMessage: buf=" + strbuf.toString());
+//		StringBuffer strbuf = new StringBuffer();
+//		for (int i = 0; i <packet.length; i++)
+//			strbuf.append(packet[i] & 0xFF).append(' ');
+//		TCPTransport.RLOGGER.fine("sendEncodedMessage: buf=" + strbuf.toString());
 		
 		MalBinaryWrite32(packet, MESSAGE_LENGTH_OFFSET, packet.length - HEADER_FIXED_SIZE);
 		
 		synchronized (dos) {
-			// TODO (AF): To remove (framing)
-//			// write packet length
-//			dos.writeInt(packet.length);
 			// Writes the packet
 			dos.write(packet);
 			dos.flush();
@@ -100,34 +94,20 @@ public class TCPConnectionHandler {
 		try {
 			synchronized (dis) {
 				// read the header
-				// TODO (AF): To remove (framing)
-//				byte[] header = new byte[HEADER_FIXED_SIZE +4];
 				byte[] header = new byte[HEADER_FIXED_SIZE];
 				dis.readFully(header);
 				// get the packet size then read the remaining bytes
 				
-				// TODO (AF): To remove (framing)
-//				int length1 = MalBinaryRead32(header, MESSAGE_LENGTH_OFFSET +4);
 				int length = MalBinaryRead32(header, MESSAGE_LENGTH_OFFSET);
-				// TODO (AF): To remove (framing)
-//				int length = MalBinaryRead32(header, MESSAGE_LENGTH_OFFSET_TEST);
-//				if (length != length1) {
-//					TCPTransport.RLOGGER.log(Level.SEVERE,
-//							"Bad encoded length: " + length + " != " + length1);
-//				}
 				byte[] data = new byte[HEADER_FIXED_SIZE+length];
-				// TODO (AF): To remove (framing)
-//				System.arraycopy(header, 4, data, 0, HEADER_FIXED_SIZE);
-//				dis.readFully(data, HEADER_FIXED_SIZE, length - HEADER_FIXED_SIZE);
 				System.arraycopy(header, 0, data, 0, HEADER_FIXED_SIZE);
 				dis.readFully(data, HEADER_FIXED_SIZE, length);
 				
 				// TODO (AF): for Debug
-				StringBuffer strbuf = new StringBuffer();
-				for (int i = 0; i <data.length; i++)
-					strbuf.append(data[i] & 0xFF).append(' ');
-				TCPTransport.RLOGGER.log(Level.WARNING,
-						"readEncodedMessage: buf=" + strbuf.toString());
+//				StringBuffer strbuf = new StringBuffer();
+//				for (int i = 0; i <data.length; i++)
+//					strbuf.append(data[i] & 0xFF).append(' ');
+//				TCPTransport.RLOGGER.fine("readEncodedMessage: buf=" + strbuf.toString());
 
 				return data;
 			}
