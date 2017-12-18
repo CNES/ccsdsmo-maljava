@@ -247,4 +247,9 @@ public class JORAMListDecoder implements MALListDecoder {
   public UShort decodeUShort() throws MALException {
     return malDecoder.decodeUShort();
   }
+
+  // Note (AF): Added for compatibility with ESA API,not really part of the interface.
+  public int size() {
+	  return size;
+  }
 }

@@ -247,7 +247,7 @@ public class JORAMElementOutputStream implements MALElementOutputStream {
   
   private void writeTypeId(Element element, Object[] lastShortForms) throws MALException {
     if (lastShortForms != null && lastShortForms.length == ATTRIBUTE_TYPES_COUNT &&
-        Blob.SHORT_FORM.equals(lastShortForms[0])) {
+        Blob.BLOB_SHORT_FORM.equals(lastShortForms[0])) {
       // Element declared as a MAL::Attribute
       Attribute attribute = (Attribute) element;
       try {

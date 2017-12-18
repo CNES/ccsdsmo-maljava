@@ -37,21 +37,15 @@ import org.ccsds.moims.mo.mal.MALService;
  */
 public class Union implements Attribute {
 
-  public static final byte BOOLEAN_TYPE = 1;
-
-  public static final byte FLOAT_TYPE = 2;
-
-  public static final byte DOUBLE_TYPE = 3;
-
-  public static final byte OCTET_TYPE = 4;
-
-  public static final byte SHORT_TYPE = 5;
-
-  public static final byte INTEGER_TYPE = 6;
-
-  public static final byte LONG_TYPE = 7;
-
-  public static final byte STRING_TYPE = 8;
+  // Note (AF): May be we should use TYPE_SHORT_FORM from Attribute.
+  private static final byte BOOLEAN_TYPE = 1;
+  private static final byte FLOAT_TYPE = 2;
+  private static final byte DOUBLE_TYPE = 3;
+  private static final byte OCTET_TYPE = 4;
+  private static final byte SHORT_TYPE = 5;
+  private static final byte INTEGER_TYPE = 6;
+  private static final byte LONG_TYPE = 7;
+  private static final byte STRING_TYPE = 8;
   
   private static final String EMPTY_STRING = "";
   
@@ -203,9 +197,10 @@ public class Union implements Attribute {
     return (String) value;
   }
   
-  public Object getValue() {
-    return value;
-  }
+  // Note (AF): The generic getValue method is not part of API.
+//  public Object getValue() {
+//    return value;
+//  }
   
   public int hashCode() {
     if (value == null) return 0;

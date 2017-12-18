@@ -23,9 +23,7 @@
   *******************************************************************************/
 package fr.cnes.maljoram.malencoding;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 import org.ccsds.moims.mo.mal.MALContextFactory;
 import org.ccsds.moims.mo.mal.MALElementFactory;
@@ -71,24 +69,24 @@ public class JORAMElementInputStream implements MALElementInputStream {
       .getLogger(JORAMElementInputStream.class.getName());
   
   public final static long[] attributeShortForms = {
-    Blob.SHORT_FORM,
+    Blob.BLOB_SHORT_FORM,
     Union.BOOLEAN_SHORT_FORM,
-    Duration.SHORT_FORM,
+    Duration.DURATION_SHORT_FORM,
     Union.FLOAT_SHORT_FORM,
     Union.DOUBLE_SHORT_FORM,
-    Identifier.SHORT_FORM,
+    Identifier.IDENTIFIER_SHORT_FORM,
     Union.OCTET_SHORT_FORM,
     UOctet.SHORT_SHORT_FORM,
     Union.SHORT_SHORT_FORM,
-    UShort.SHORT_FORM,
+    UShort.USHORT_SHORT_FORM,
     Union.INTEGER_SHORT_FORM,
-    UInteger.SHORT_FORM,
+    UInteger.UINTEGER_SHORT_FORM,
     Union.LONG_SHORT_FORM,
-    ULong.SHORT_FORM,
+    ULong.ULONG_SHORT_FORM,
     Union.STRING_SHORT_FORM,
-    Time.SHORT_FORM,
-    FineTime.SHORT_FORM,
-    URI.SHORT_FORM
+    Time.TIME_SHORT_FORM,
+    FineTime.FINETIME_SHORT_FORM,
+    URI.URI_SHORT_FORM
   };
   
   private Decoder decoder;
@@ -230,7 +228,7 @@ public class JORAMElementInputStream implements MALElementInputStream {
                     
                     if (update instanceof Union) {
                       Union union = (Union) update;
-                      updateList.add(union.getValue());
+                      updateList.add(getUnionValue(union));
                     } else {
                       updateList.add(update);
                     }
@@ -257,6 +255,30 @@ public class JORAMElementInputStream implements MALElementInputStream {
         }
       }
     }
+  }
+  
+  // TODO (AF): Patch needed by API divergence.
+  private Object getUnionValue(Union union) throws MALException {
+	  switch (union.getTypeShortForm()) {
+	  case Attribute._BOOLEAN_TYPE_SHORT_FORM:
+		  return union.getBooleanValue();
+	  case Attribute._FLOAT_TYPE_SHORT_FORM:
+		  return union.getFloatValue();
+	  case Attribute._DOUBLE_TYPE_SHORT_FORM:
+		  return union.getDoubleValue();
+	  case Attribute._OCTET_TYPE_SHORT_FORM:
+		  return union.getOctetValue();
+	  case Attribute._SHORT_TYPE_SHORT_FORM:
+		  return union.getShortValue();
+	  case Attribute._INTEGER_TYPE_SHORT_FORM:
+		  return union.getIntegerValue();
+	  case Attribute._LONG_TYPE_SHORT_FORM:
+		  return union.getLongValue();
+	  case Attribute._STRING_TYPE_SHORT_FORM:
+		  return union.getStringValue();
+	  default:
+		  throw new MALException();
+	  }
   }
   
   private Element checkPassedElement(Element element, MALEncodingContext ctx) throws MALException {
@@ -308,7 +330,7 @@ public class JORAMElementInputStream implements MALElementInputStream {
   private Object resolveShortForm(Object[] lastShortForms) throws MALException {
     if (lastShortForms != null
         && lastShortForms.length == JORAMElementOutputStream.ATTRIBUTE_TYPES_COUNT
-        && Blob.SHORT_FORM.equals(lastShortForms[0])) {
+        && Blob.BLOB_SHORT_FORM.equals(lastShortForms[0])) {
       // Element declared as a MAL::Attribute
       try {
         int attributeTag = malDecoder.getDecoder().readByte();
