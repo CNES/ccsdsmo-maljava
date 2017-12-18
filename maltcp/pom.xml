@@ -97,8 +97,8 @@
         	</activation>
 			<dependencies>
 				<dependency>
-					<groupId>org.ccsds.moims.mo</groupId>
-					<artifactId>cnes-mal-api</artifactId>
+					<groupId>fr.cnes.ccsds.mo</groupId>
+					<artifactId>mal-api</artifactId>
 					<version>3.2.2</version>
 				</dependency>
 			</dependencies>
