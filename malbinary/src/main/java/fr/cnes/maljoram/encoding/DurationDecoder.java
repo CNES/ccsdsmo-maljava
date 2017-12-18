@@ -25,6 +25,6 @@ package fr.cnes.maljoram.encoding;
 
 public interface DurationDecoder {
   
-  int decode(Decoder decoder) throws Exception;
+  double decode(Decoder decoder) throws Exception;
 
 }

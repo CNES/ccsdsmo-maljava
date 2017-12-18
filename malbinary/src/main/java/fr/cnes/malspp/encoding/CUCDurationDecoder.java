@@ -45,8 +45,8 @@ public class CUCDurationDecoder implements DurationDecoder {
     this.timeCode = timeCode;
   }
 
-  public int decode(Decoder decoder) throws Exception {
-    return (int) CUCTimeDecoder.decodeCUC(decoder, timeCode, null);
+  public double decode(Decoder decoder) throws Exception {
+    return CUCTimeDecoder.decodeCUC(decoder, timeCode, null);
   }
 
   @Override

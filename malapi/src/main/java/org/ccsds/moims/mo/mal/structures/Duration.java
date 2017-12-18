@@ -44,7 +44,7 @@ public class Duration implements Attribute, Comparable<Duration> {
    */
   public static final Integer TYPE_SHORT_FORM = DURATION_TYPE_SHORT_FORM;
   
-  private int value;
+  private double value;
   
   /**
    * Constructs a {@code Duration} without any parameters.
@@ -55,7 +55,7 @@ public class Duration implements Attribute, Comparable<Duration> {
    * Constructs a {@code Duration} with an integer.
    * @param value the value of this {@code Duration}
    */
-  public Duration(int value) {
+  public Duration(double value) {
     super();
     this.value = value;
   }
@@ -64,12 +64,12 @@ public class Duration implements Attribute, Comparable<Duration> {
    * Returns the {@code Duration} value
    * @return the {@code Duration} value
    */
-  public int getValue() {
+  public double getValue() {
     return value;
   }
   
   public int hashCode() {
-    return value;
+    return Double.valueOf(value).hashCode();
   }
   
   public boolean equals(Object obj) {
@@ -117,6 +117,6 @@ public class Duration implements Attribute, Comparable<Duration> {
   }
 
   public int compareTo(Duration duration) {
-    return new Integer(value).compareTo(duration.getValue());
+    return new Double(value).compareTo(duration.getValue());
   }
 }

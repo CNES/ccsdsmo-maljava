@@ -45,8 +45,8 @@ public class CUCDurationEncoder implements DurationEncoder {
     this.timeCode = timeCode;
   }
 
-  public void encode(int duration, Encoder encoder) throws Exception {
-    CUCTimeEncoder.encodeCUC((double) duration, encoder, timeCode, null);
+  public void encode(double duration, Encoder encoder) throws Exception {
+    CUCTimeEncoder.encodeCUC(duration, encoder, timeCode, null);
   }
 
   @Override

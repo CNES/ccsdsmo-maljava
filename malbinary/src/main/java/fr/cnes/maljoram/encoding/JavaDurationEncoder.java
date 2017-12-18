@@ -23,13 +23,9 @@
   *******************************************************************************/
 package fr.cnes.maljoram.encoding;
 
-import fr.cnes.maljoram.encoding.DurationEncoder;
-import fr.cnes.maljoram.encoding.Encoder;
-
 public class JavaDurationEncoder implements DurationEncoder {
 
-  public void encode(int duration, Encoder encoder) throws Exception {
-    encoder.writeSignedInt(duration);
+  public void encode(double duration, Encoder encoder) throws Exception {
+    encoder.write64(Double.doubleToLongBits(duration));
   }
-
 }

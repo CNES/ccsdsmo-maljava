@@ -23,13 +23,9 @@
   *******************************************************************************/
 package fr.cnes.maljoram.encoding;
 
-import fr.cnes.maljoram.encoding.Decoder;
-import fr.cnes.maljoram.encoding.DurationDecoder;
-
 public class JavaDurationDecoder implements DurationDecoder {
 
-  public int decode(Decoder decoder) throws Exception {
-    return decoder.readSignedInt();
+  public double decode(Decoder decoder) throws Exception {
+    return Double.longBitsToDouble(decoder.read64());
   }
-
 }
