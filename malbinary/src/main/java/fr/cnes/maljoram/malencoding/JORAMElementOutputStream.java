@@ -110,9 +110,7 @@ public class JORAMElementOutputStream implements MALElementOutputStream {
     MALOperation op = ctx.getOperation();
     
     if (logger.isLoggable(BasicLevel.WARN))
-      logger.log(BasicLevel.WARN, "op=" + op);
-    if (logger.isLoggable(BasicLevel.WARN))
-      logger.log(BasicLevel.WARN, "header=" + header);
+      logger.log(BasicLevel.WARN, "Writes op=" + op + ", header=" + header);
     
     if (header.getIsErrorMessage()) {
       switch (ctx.getBodyElementIndex()) {

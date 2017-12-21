@@ -143,9 +143,7 @@ public class JORAMElementInputStream implements MALElementInputStream {
     MALMessageHeader header = ctx.getHeader();
     
     if (logger.isLoggable(BasicLevel.WARN))
-      logger.log(BasicLevel.WARN, "op=" + op);
-    if (logger.isLoggable(BasicLevel.WARN))
-      logger.log(BasicLevel.WARN, "header=" + header);
+      logger.log(BasicLevel.WARN, "Reads op=" + op + ", header=" + header);
     
     if (header.getIsErrorMessage()) {
       switch (ctx.getBodyElementIndex()) {
