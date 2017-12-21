@@ -53,8 +53,7 @@ public abstract class SyncInteraction extends Interaction {
   
   public void notifyInitiator(MALMessageBody body) {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "SyncInteraction.notifyInitiator(" +
-          body + ')');
+      logger.log(BasicLevel.DEBUG, "SyncInteraction.notifyInitiator(" + body + ')');
     synchronized (lock) {
       result = body;
       resultReceived = true;
@@ -68,15 +67,14 @@ public abstract class SyncInteraction extends Interaction {
   
   public MALMessageBody waitForResponse() throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "SyncInteraction.waitForResponse(" +
-          result + ')');
+      logger.log(BasicLevel.DEBUG, "SyncInteraction.waitForResponse(" + result + ')');
     synchronized (lock) {
       while (!resultReceived) {
         try {
           lock.wait();
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException exc) {
           if (logger.isLoggable(BasicLevel.DEBUG))
-            logger.log(BasicLevel.DEBUG, "", ex);
+            logger.log(BasicLevel.DEBUG, "SyncInteraction.waitForResponse()", exc);
           return null;
         }
       }
@@ -89,7 +87,7 @@ public abstract class SyncInteraction extends Interaction {
         error = errorBody.getError();
       } catch (MALException exc) {
         if (logger.isLoggable(BasicLevel.DEBUG))
-          logger.log(BasicLevel.DEBUG, "", exc);
+          logger.log(BasicLevel.DEBUG, "SyncInteraction.waitForResponse()", exc);
         throw exc;
       }
       throw new MALInteractionException(error);
