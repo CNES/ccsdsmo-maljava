@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 package fr.cnes.ccsds.mo.transport.tcp;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.ccsds.moims.mo.mal.MALContext;
 import org.ccsds.moims.mo.mal.MALException;
@@ -40,6 +41,7 @@ public class TCPTransportFactory extends MALTransportFactory {
 	// TODO (AF): The protocol URI scheme name should be hard-coded as 'maltcp' 
 	public TCPTransportFactory(String protocol) throws IllegalArgumentException {
 		super(protocol);
+		TCPTransport.RLOGGER.setLevel(Level.WARNING);
 	}
 
 	@Override
