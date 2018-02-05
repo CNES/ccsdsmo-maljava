@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -178,6 +178,7 @@ public class TCPTransport implements MALTransport {
 	public void init() throws MALException {
 	    baseURI = getProtocol() + PROTOCOL_DELIMITER + createTransportAddress() + SERVICE_DELIMITER;
 
+	    RLOGGER.log(Level.INFO, "TCPTransport.init: " + RLOGGER.getLevel());
 		if (serverHost != null) {
 			// this is also a server (i.e. provides some services)
 			RLOGGER.log(Level.INFO, "Starting TCP Server Transport on port {0}", serverPort);
@@ -420,7 +421,7 @@ public class TCPTransport implements MALTransport {
 					// create new sender for this URI
 					handler = registerConnectionHandler(createConnectionHandler(msg, remoteRootURI), remoteRootURI);
 				} catch (MALException e) {
-					RLOGGER.log(Level.WARNING, "TCP could not connect to :" + remoteRootURI, e);
+					RLOGGER.log(Level.SEVERE, "TCP could not connect to :" + remoteRootURI, e);
 					throw new MALTransmitErrorException(msg.getHeader(),
 							new MALStandardError(
 									MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER,
@@ -529,7 +530,7 @@ public class TCPTransport implements MALTransport {
 	 * @param receptionHandler
 	 */
 	public void communicationError(String uriTo, TCPMessagePoller poller) {
-		RLOGGER.log(Level.WARNING, "TCP Communication Error with {0} ", uriTo);
+		RLOGGER.log(Level.SEVERE, "TCP Communication Error with {0} ", uriTo);
 		closeConnection(uriTo, poller);
 	}
 
@@ -562,7 +563,7 @@ public class TCPTransport implements MALTransport {
 						"TCP Cannot find endpoint: " + endpointUriPart);
 			}
 		} catch (Exception e) {
-			RLOGGER.log(Level.WARNING,
+			RLOGGER.log(Level.SEVERE,
 					"TCP Error occurred when receiving data : {0}", e);
 
 			final StringWriter wrt = new StringWriter();
@@ -672,7 +673,7 @@ public class TCPTransport implements MALTransport {
 						new Object[] { errorNumber, oriMsg.getHeader() });
 			}
 		} catch (MALTransmitErrorException ex) {
-			RLOGGER.log(Level.WARNING,
+			RLOGGER.log(Level.SEVERE,
 					"TCP Error occurred when attempting to return previous error : {0}",
 					ex);
 		}
@@ -706,7 +707,7 @@ public class TCPTransport implements MALTransport {
 
 			processIncomingMessage(malMsg);
 		} catch (MALException e) {
-			TCPTransport.RLOGGER.log(Level.WARNING, "TCP Error occurred when decoding data : {0}", e);
+			TCPTransport.RLOGGER.log(Level.SEVERE, "TCP Error occurred when decoding data : {0}", e);
 			communicationError(null, poller);
 		}
 	}
@@ -761,15 +762,15 @@ public class TCPTransport implements MALTransport {
 
 			return handler;
 		} catch (NumberFormatException nfe) {
-			RLOGGER.log(Level.WARNING, "Have no means to communicate with client URI : {0}", remoteRootURI);
+			RLOGGER.log(Level.SEVERE, "Have no means to communicate with client URI : {0}", remoteRootURI);
 			throw new MALException("Have no means to communicate with client URI : " + remoteRootURI);
 		} catch (UnknownHostException e) {
-			RLOGGER.log(Level.WARNING, "TCPIP could not find host :{0}", remoteRootURI);
+			RLOGGER.log(Level.SEVERE, "TCPIP could not find host :{0}", remoteRootURI);
 			throw new MALTransmitErrorException(msg.getHeader(), 
 					new MALStandardError(MALHelper.DESTINATION_UNKNOWN_ERROR_NUMBER, null),
 					new HashMap());
 		} catch (java.net.ConnectException e) {
-			RLOGGER.log(Level.WARNING, "TCPIP could not connect to :{0}", remoteRootURI);
+			RLOGGER.log(Level.SEVERE, "TCPIP could not connect to :{0}", remoteRootURI);
 			throw new MALTransmitErrorException(msg.getHeader(),
 					new MALStandardError(MALHelper.DESTINATION_TRANSIENT_ERROR_NUMBER, null),
 					null);
