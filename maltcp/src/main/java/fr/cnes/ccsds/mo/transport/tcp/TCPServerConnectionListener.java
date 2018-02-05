@@ -64,7 +64,7 @@ public class TCPServerConnectionListener extends Thread {
 		try {
 			serverSocket.setSoTimeout(1000);
 		} catch (IOException e) {
-			RLOGGER.log(Level.WARNING, "Error while setting connection timeout", e);
+			RLOGGER.log(Level.SEVERE, "Error while setting connection timeout", e);
 		}
 
 		// setup socket and then listen for connections forever
@@ -83,7 +83,7 @@ public class TCPServerConnectionListener extends Thread {
 			} catch (java.net.SocketTimeoutException ex) {
 				// this is ok, we just loop back around
 			} catch (IOException e) {
-				RLOGGER.log(Level.WARNING, "Error while accepting connection", e);
+				RLOGGER.log(Level.SEVERE, "Error while accepting connection", e);
 			}
 		}
 
@@ -101,7 +101,7 @@ public class TCPServerConnectionListener extends Thread {
 			try {
 				serverSocket.close();
 			} catch (IOException e) {
-				RLOGGER.log(Level.WARNING, "Error during termination", e);
+				RLOGGER.log(Level.SEVERE, "Error during termination", e);
 			}
 		}
 		
