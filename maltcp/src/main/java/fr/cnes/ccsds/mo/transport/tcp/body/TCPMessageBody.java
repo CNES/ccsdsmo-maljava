@@ -238,8 +238,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 							sf = ctx.getOperation().getOperationStage(stage).getElementShortForms()[i];
 						}
 					}
-					encodeBodyPart(streamFactory, benc, wrappedBodyParts, sf,
-							getBodyElement(i, null), ctx);
+					encodeBodyPart(streamFactory, benc, wrappedBodyParts, sf, getBodyElement(i, null), ctx);
 				}
 
 				if (wrappedBodyParts) {
@@ -259,6 +258,8 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			final MALElementOutputStream enc,
 			final boolean wrapBodyParts,
 			final Object sf, final Object o, final MALEncodingContext ctx) throws MALException {
+		TCPTransport.RLOGGER.log(Level.FINEST,
+				"\n\n##### TCPMessageBody.encodeBodyPart wrapBodyParts=" + wrapBodyParts + " !! ##### \n\n");
 
 		// if it is already an encoded element then just write it directly
 		if (o instanceof MALEncodedElement) {
@@ -287,7 +288,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 				enc.writeElement(new Blob(lbaos.toByteArray()), null);
 			}
 		} else if (o.getClass().isAnnotationPresent(javax.xml.bind.annotation.XmlType.class)) {
-			// else if it is a JAXB XML object				
+			// else if it is a JAXB XML object
 			try {
 				// get the XML tags for the object
 				final String ssf = (String) sf;
@@ -425,7 +426,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 
 				TCPTransport.RLOGGER.fine("TCP Message decoded body");
 			} catch (MALException ex) {
-				TCPTransport.RLOGGER.log(Level.WARNING, "TCP Message body ERROR on decode : {0}", ex);
+				TCPTransport.RLOGGER.log(Level.SEVERE, "TCP Message body ERROR on decode : {0}", ex);
 			}
 		}
 	}
@@ -460,8 +461,7 @@ public class TCPMessageBody implements MALMessageBody, java.io.Serializable {
 			Object element = null;
 			if (null != sf) {
 				Long shortForm = (Long) sf;
-				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding body part : Type = {0}",
-						shortForm);
+				TCPTransport.RLOGGER.log(Level.FINE, "TCP Message decoding body part : Type = {0}", shortForm);
 				final MALElementFactory ef = MALContextFactory
 						.getElementFactoryRegistry().lookupElementFactory(
 								shortForm);
