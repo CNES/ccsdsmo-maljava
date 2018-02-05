@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -73,7 +73,7 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 
 		if (localName != null) 
 			setName(localName);
-		else
+		else if (routingName != null)
 			setName(routingName);
 	}
 
@@ -261,19 +261,21 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 		TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Delivering message", localName);
 		
 		if (active && (null != listener)) {
-			TCPTransport.RLOGGER.log(Level.FINE, "TCPEndpoint ({0}) Deliver message active({1}) listener({2}) {3}",
-					new Object[] { localName, active, listener, pmsg.toString() });
 			// TODO (AF): Avoid a dead-lock in some tests.
-			new Thread() {
-				public void run() {
-					listener.onMessage(TCPEndPoint.this, pmsg);
-				}
-			}.start();
-//			listener.onMessage(TCPEndPoint.this, pmsg);
+//			new Thread() {
+//				public void run() {
+//					TCPTransport.RLOGGER.log(Level.SEVERE, "TCPEndpoint ({0}) Deliver message active({1}) listener({2}) {3}",
+//							new Object[] { getName(), active, listener, pmsg.toString() });
+//					listener.onMessage(TCPEndPoint.this, pmsg);
+//				}
+//			}.start();
+			TCPTransport.RLOGGER.log(Level.SEVERE, "TCPEndpoint ({0}) Deliver message active({1}) listener({2}) {3}",
+					new Object[] { getName(), active, listener, pmsg.toString() });
+			listener.onMessage(TCPEndPoint.this, pmsg);
 		} else {
 			TCPTransport.RLOGGER.log(Level.WARNING,
 					"TCPEndpoint ({0}) Discarding message active({1}) listener({2}) {3}",
-					new Object[] { localName, active, listener,
+					new Object[] { getName(), active, listener,
 					pmsg.toString() });
 		}
 	}
@@ -283,23 +285,23 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 	
 	public void run() {
 		try {
-			TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint (" + localName + ") running");
+			TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint (" + getName() + ") running");
 			while (running) {
 				try {
 					MALMessage msg = queue.poll(1000L, TimeUnit.MILLISECONDS);
 					if (msg != null) handleMessage(msg);
 				} catch (InterruptedException exc) {
 					TCPTransport.RLOGGER.log(Level.WARNING, 
-								"TCPEndpoint (" + localName + ") interupted)", exc);
+								"TCPEndpoint (" + getName() + ") interupted)", exc);
 				} catch (MALException exc) {
 					TCPTransport.RLOGGER.log(Level.WARNING, 
-							"TCPEndpoint (" + localName + ") error handling message)", exc);
+							"TCPEndpoint (" + getName() + ") error handling message)", exc);
 				}
 			}
 		} catch (Throwable t) {
-			TCPTransport.RLOGGER.log(Level.SEVERE, "TCPEndpoint (" + localName + ")", t);
+			TCPTransport.RLOGGER.log(Level.SEVERE, "TCPEndpoint (" + getName() + ")", t);
 		} finally {
-			TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint (" + localName + ") exit");
+			TCPTransport.RLOGGER.log(Level.INFO, "TCPEndpoint (" + getName() + ") exit");
 		}
 	}
 	
@@ -317,7 +319,7 @@ public class TCPEndPoint extends Thread implements MALEndpoint {
 		} else {
 			TCPTransport.RLOGGER.log(Level.WARNING,
 					"TCPEndpoint ({0}) Discarding messages active({1}) listener({2})",
-					new Object[] { localName, active, listener });
+					new Object[] { getName(), active, listener });
 		}
 	}
 
