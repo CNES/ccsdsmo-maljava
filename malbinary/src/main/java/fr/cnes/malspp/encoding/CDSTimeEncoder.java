@@ -30,8 +30,8 @@ import org.orekit.time.DateTimeComponents;
 import org.orekit.time.TimeScale;
 import org.orekit.time.TimeScalesFactory;
 
-import fr.cnes.maljoram.encoding.Encoder;
-import fr.cnes.maljoram.encoding.TimeEncoder;
+import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.binary.TimeEncoder;
 
 public class CDSTimeEncoder implements TimeEncoder {
   

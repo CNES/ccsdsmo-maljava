@@ -23,8 +23,8 @@
   *******************************************************************************/
 package fr.cnes.malspp.encoding;
 
-import fr.cnes.maljoram.encoding.DurationEncoder;
-import fr.cnes.maljoram.encoding.Encoder;
+import fr.cnes.encoding.binary.DurationEncoder;
+import fr.cnes.encoding.binary.Encoder;
 
 public class CUCDurationEncoder implements DurationEncoder {
   

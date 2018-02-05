@@ -27,8 +27,8 @@ import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 import org.orekit.time.AbsoluteDate;
 
-import fr.cnes.maljoram.encoding.Decoder;
-import fr.cnes.maljoram.encoding.FineTimeDecoder;
+import fr.cnes.encoding.binary.Decoder;
+import fr.cnes.encoding.binary.FineTimeDecoder;
 
 public class CUCFineTimeDecoder implements FineTimeDecoder {
 

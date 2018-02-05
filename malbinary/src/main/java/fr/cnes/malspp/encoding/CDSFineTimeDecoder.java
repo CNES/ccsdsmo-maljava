@@ -28,8 +28,8 @@ import org.objectweb.util.monolog.api.Logger;
 import org.orekit.time.AbsoluteDate;
 import org.orekit.time.DateComponents;
 
-import fr.cnes.maljoram.encoding.Decoder;
-import fr.cnes.maljoram.encoding.FineTimeDecoder;
+import fr.cnes.encoding.binary.Decoder;
+import fr.cnes.encoding.binary.FineTimeDecoder;
 
 public class CDSFineTimeDecoder implements FineTimeDecoder {
 

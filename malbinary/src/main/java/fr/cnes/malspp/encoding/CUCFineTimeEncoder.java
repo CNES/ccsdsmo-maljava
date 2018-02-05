@@ -28,8 +28,8 @@ import org.objectweb.util.monolog.api.Logger;
 import org.orekit.time.AbsoluteDate;
 import org.orekit.time.TimeScalesFactory;
 
-import fr.cnes.maljoram.encoding.Encoder;
-import fr.cnes.maljoram.encoding.FineTimeEncoder;
+import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.binary.FineTimeEncoder;
 
 public class CUCFineTimeEncoder implements FineTimeEncoder {
 
