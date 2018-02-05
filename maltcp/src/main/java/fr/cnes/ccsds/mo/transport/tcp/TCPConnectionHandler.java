@@ -75,11 +75,13 @@ public class TCPConnectionHandler {
 	}
 
 	public void sendEncodedMessage(byte[] packet) throws IOException {
-		// TODO (AF): for Debug
-//		StringBuffer strbuf = new StringBuffer();
-//		for (int i = 0; i <packet.length; i++)
-//			strbuf.append(packet[i] & 0xFF).append(' ');
-//		TCPTransport.RLOGGER.fine("sendEncodedMessage: buf=" + strbuf.toString());
+		if (TCPTransport.RLOGGER.isLoggable(Level.FINE)) {
+			StringBuffer strbuf = new StringBuffer();
+			strbuf.append("sendEncodedMessage: buf=");
+			for (int i = 0; i <packet.length; i++)
+				strbuf.append(packet[i] & 0xFF).append(' ');
+			TCPTransport.RLOGGER.fine(strbuf.toString());
+		}
 		
 		MalBinaryWrite32(packet, MESSAGE_LENGTH_OFFSET, packet.length - HEADER_FIXED_SIZE);
 		
@@ -103,11 +105,13 @@ public class TCPConnectionHandler {
 				System.arraycopy(header, 0, data, 0, HEADER_FIXED_SIZE);
 				dis.readFully(data, HEADER_FIXED_SIZE, length);
 				
-				// TODO (AF): for Debug
-//				StringBuffer strbuf = new StringBuffer();
-//				for (int i = 0; i <data.length; i++)
-//					strbuf.append(data[i] & 0xFF).append(' ');
-//				TCPTransport.RLOGGER.fine("readEncodedMessage: buf=" + strbuf.toString());
+				if (TCPTransport.RLOGGER.isLoggable(Level.FINE)) {
+					StringBuffer strbuf = new StringBuffer();
+					strbuf.append("readEncodedMessage: buf=");
+					for (int i = 0; i <data.length; i++)
+						strbuf.append(data[i] & 0xFF).append(' ');
+					TCPTransport.RLOGGER.fine(strbuf.toString());
+				}
 
 				return data;
 			}
