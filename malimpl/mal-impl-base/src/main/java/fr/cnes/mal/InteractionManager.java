@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALOperation;
@@ -44,25 +45,26 @@ import fr.cnes.mal.consumer.AsyncRequestInteraction;
 import fr.cnes.mal.consumer.AsyncSubmitInteraction;
 
 public class InteractionManager {
-  
   public final static Logger logger = fr.dyade.aaa.common.Debug
     .getLogger(InteractionManager.class.getName());
   
-  private volatile long transIdCounter;
+//  private volatile long transIdCounter;
+  private static AtomicLong counter = new AtomicLong();
   
   private Hashtable<Long, Interaction> interactions;
   
   private volatile boolean closed;
   
   public InteractionManager() {
-    transIdCounter = 0;
+//    transIdCounter = 0;
     interactions = new Hashtable<Long, Interaction>();
   }
   
   public synchronized Long getTransactionId() throws MALException {
     if (closed)
       throwClosedError();
-    Long tid = new Long(transIdCounter++);
+//    Long tid = new Long(transIdCounter++);
+    Long tid = new Long(counter.incrementAndGet());
     return tid;
   }
   
