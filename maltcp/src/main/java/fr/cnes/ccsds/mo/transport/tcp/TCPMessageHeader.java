@@ -581,7 +581,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 	}
 	
 	public void encodeMessageHeader(OutputStream out) throws IllegalArgumentException, IOException, MALException {
-		TCPTransport.RLOGGER.finest("@@@@@ >> " + this.toString());
+		TCPTransport.RLOGGER.fine("@@@@@ >> " + this.toString() + " -> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
 
 		// Encode the version number.
 	    encodeFixedBinaryUOctet(out, new UOctet((short) (getSDUType() | 0x20)));
@@ -591,9 +591,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 	    encodeFixedBinaryUShort(out, operation);
 		encodeFixedBinaryUOctet(out, areaVersion);
 
-		encodeFixedBinaryUOctet(out, new UOctet((short) (getErrorFlag() | getQoSLevelBits() | getSessionBits())));
-	    TCPTransport.RLOGGER.finest("@@@@@ >> " + getErrorFlag() + ", " + getQoSLevelBits() + ", " + getSessionBits());
-	    
+		encodeFixedBinaryUOctet(out, new UOctet((short) (getErrorFlag() | getQoSLevelBits() | getSessionBits())));	    
 	    encodeFixedBinaryLong(out, transactionId);
 
 		// Always encode URI's (Allowed by the specification).
@@ -868,7 +866,7 @@ public class TCPMessageHeader implements MALMessageHeader, Composite, Cloneable 
 			TCPTransport.RLOGGER.finest("@@@@@ << Decode authenticationId=" + authenticationId);
 		}
 		
-		TCPTransport.RLOGGER.finest("@@@@@ << " + this.toString());
+		TCPTransport.RLOGGER.fine("@@@@@ << " + this.toString());
 		} catch (IOException exc) {
 			throw new MALException(exc.getMessage());
 		}
