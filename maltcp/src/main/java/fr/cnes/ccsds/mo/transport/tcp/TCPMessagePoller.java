@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,7 @@ public class TCPMessagePoller extends Thread {
 
 				TCPTransport.RLOGGER.log(Level.FINE, "Client @" + this.getId() + " receive message: {0}", remoteURI);
 			} catch (EOFException ex) {
-				TCPTransport.RLOGGER.log(Level.INFO, "Client @" + this.getId() + " closing connection: {0}", remoteURI);
+				TCPTransport.RLOGGER.log(Level.SEVERE, "Client @" + this.getId() + " closing connection: {0}", remoteURI);
 
 				transport.closeConnection(remoteURI, this);
 				close();
@@ -94,7 +94,7 @@ public class TCPMessagePoller extends Thread {
 				// and terminate
 				bContinue = false;
 			} catch (IOException e) {
-				TCPTransport.RLOGGER.log(Level.WARNING, "Cannot read message from client @" + this.getId(), e);
+				TCPTransport.RLOGGER.log(Level.SEVERE, "Cannot read message from client @" + this.getId(), e);
 
 				transport.communicationError(remoteURI, this);
 				close();
