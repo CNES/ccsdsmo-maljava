@@ -63,7 +63,7 @@ public class MALJMSTransport implements MALTransport {
     //if (encodingFormat == null) encodingFormat = "joram";
     
     // Need to deactivate the publish encoding optimization
-    properties.put("fr.cnes.maljoram.malencoding.encoded.update", Boolean.FALSE);
+    properties.put("fr.cnes.encoding.binary.encoded.update", Boolean.FALSE);
     elementStreamFactory = MALElementStreamFactory.newFactory(protocol, properties);
     String sharedBrokerCreationS = (String) properties.get(SHARED_BROKER_CREATION);
     sharedBrokerCreation = Boolean.parseBoolean(sharedBrokerCreationS);
