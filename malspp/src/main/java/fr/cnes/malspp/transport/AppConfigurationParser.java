@@ -49,13 +49,13 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-import fr.cnes.maljoram.encoding.DurationDecoder;
-import fr.cnes.maljoram.encoding.DurationEncoder;
-import fr.cnes.maljoram.encoding.FineTimeDecoder;
-import fr.cnes.maljoram.encoding.FineTimeEncoder;
-import fr.cnes.maljoram.encoding.TimeDecoder;
-import fr.cnes.maljoram.encoding.TimeEncoder;
-import fr.cnes.maljoram.malencoding.JORAMElementStreamFactory;
+import fr.cnes.encoding.binary.DurationDecoder;
+import fr.cnes.encoding.binary.DurationEncoder;
+import fr.cnes.encoding.binary.FineTimeDecoder;
+import fr.cnes.encoding.binary.FineTimeEncoder;
+import fr.cnes.encoding.binary.TimeDecoder;
+import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.binary.BinaryElementStreamFactory;
 import fr.cnes.malspp.encoding.CDSFineTimeDecoder;
 import fr.cnes.malspp.encoding.CDSFineTimeEncoder;
 import fr.cnes.malspp.encoding.CDSTimeCode;
@@ -116,7 +116,7 @@ public class AppConfigurationParser extends DefaultHandler {
   
   private CDSTimeCode currentCdsTimeCode;
   
-  private JORAMElementStreamFactory currentElementStreamFactory;
+  private BinaryElementStreamFactory currentElementStreamFactory;
   
   private byte[] pfield;
   
@@ -270,7 +270,7 @@ public class AppConfigurationParser extends DefaultHandler {
       QualifiedAPID qapid = new QualifiedAPID(apidQualifier, apid);
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "App: " + qapid);
-      currentElementStreamFactory = new JORAMElementStreamFactory();
+      currentElementStreamFactory = new BinaryElementStreamFactory();
       currentElementStreamFactory.setEncodedUpdate(true);
       currentApp = new AppConfiguration(currentElementStreamFactory);
       if (defaultApp == null) {

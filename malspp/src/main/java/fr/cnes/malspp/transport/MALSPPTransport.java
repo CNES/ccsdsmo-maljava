@@ -60,12 +60,12 @@ import org.ccsds.moims.mo.testbed.util.spp.SpacePacketHeader;
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
-import fr.cnes.maljoram.encoding.BufferOutputStream;
-import fr.cnes.maljoram.encoding.Encoder;
-import fr.cnes.maljoram.encoding.JavaTimeDecoder;
-import fr.cnes.maljoram.encoding.JavaTimeEncoder;
-import fr.cnes.maljoram.encoding.TimeDecoder;
-import fr.cnes.maljoram.encoding.TimeEncoder;
+import fr.cnes.encoding.binary.BufferOutputStream;
+import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.binary.JavaTimeDecoder;
+import fr.cnes.encoding.binary.JavaTimeEncoder;
+import fr.cnes.encoding.binary.TimeDecoder;
+import fr.cnes.encoding.binary.TimeEncoder;
 import fr.cnes.malspp.transport.MALSPPEndpoint.PacketCounter;
 import fr.dyade.aaa.common.Daemon;
 

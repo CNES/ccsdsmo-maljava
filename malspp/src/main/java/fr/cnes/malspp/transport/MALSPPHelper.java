@@ -56,10 +56,10 @@ import org.ccsds.moims.mo.testbed.util.spp.SpacePacketHeader;
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
-import fr.cnes.maljoram.encoding.BufferDecoder;
-import fr.cnes.maljoram.encoding.BufferOutputStream;
-import fr.cnes.maljoram.encoding.BufferReader;
-import fr.cnes.maljoram.encoding.Encoder;
+import fr.cnes.encoding.binary.BufferDecoder;
+import fr.cnes.encoding.binary.BufferOutputStream;
+import fr.cnes.encoding.binary.BufferReader;
+import fr.cnes.encoding.binary.Encoder;
 
 public class MALSPPHelper {
 

@@ -29,13 +29,13 @@ import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 
-import fr.cnes.maljoram.encoding.DurationDecoder;
-import fr.cnes.maljoram.encoding.DurationEncoder;
-import fr.cnes.maljoram.encoding.FineTimeDecoder;
-import fr.cnes.maljoram.encoding.FineTimeEncoder;
-import fr.cnes.maljoram.encoding.TimeDecoder;
-import fr.cnes.maljoram.encoding.TimeEncoder;
-import fr.cnes.maljoram.malencoding.JORAMElementStreamFactory;
+import fr.cnes.encoding.binary.DurationDecoder;
+import fr.cnes.encoding.binary.DurationEncoder;
+import fr.cnes.encoding.binary.FineTimeDecoder;
+import fr.cnes.encoding.binary.FineTimeEncoder;
+import fr.cnes.encoding.binary.TimeDecoder;
+import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.binary.BinaryElementStreamFactory;
 
 public class AppConfiguration {
   
@@ -65,9 +65,9 @@ public class AppConfiguration {
   
   private Blob authenticationId;
   
-  private JORAMElementStreamFactory elementStreamFactory;
+  private BinaryElementStreamFactory elementStreamFactory;
   
-  public AppConfiguration(JORAMElementStreamFactory elementStreamFactory) {
+  public AppConfiguration(BinaryElementStreamFactory elementStreamFactory) {
     this.elementStreamFactory = elementStreamFactory;
     packetDataFieldSizeLimit = MAX_PACKET_DATA_FIELD_SIZE_LIMIT;
     authenticationId = new Blob(new byte[0]);
