@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -117,7 +117,11 @@ public abstract class Interaction {
     
     MALMessageHeader header = msg.getHeader();
     MALMessageBody body = msg.getBody();
-    
+
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG,
+    		     "&&&&& onMessage: T" + msg.getHeader().getTransactionId() + ", " + msg.getHeader().getInteractionType() + "." + msg.getHeader().getInteractionStage());
+
     try {
       if (status == RUN) {
         if (msg.getHeader().getIsErrorMessage().booleanValue()) {
@@ -125,12 +129,20 @@ public abstract class Interaction {
           onError(op, header, errorBody, msg.getQoSProperties());
           // Changes the status after the 'onError' call
           // because it may fail (e.g. incorrect message)
+          if (logger.isLoggable(BasicLevel.WARN))
+              logger.log(BasicLevel.WARN, "&&&&& onMessage: T" + msg.getHeader().getTransactionId() + " isError");
+          
           status = FAILED;
         } else {
+          if (logger.isLoggable(BasicLevel.DEBUG))
+              logger.log(BasicLevel.DEBUG, "&&&&& onMessage ok");
           onMessage(op, header, body, msg.getQoSProperties());
         }
       } else {
-        throw CNESMALContext.createException("Interaction already completed");
+          if (logger.isLoggable(BasicLevel.WARN))
+              logger.log(BasicLevel.WARN, "&&&&& onMessage: T" + msg.getHeader().getTransactionId() + " interaction already completed");
+
+          throw CNESMALContext.createException("Interaction already completed");
       }
     } catch (MALException exc) {
       if (logger.isLoggable(BasicLevel.DEBUG))
