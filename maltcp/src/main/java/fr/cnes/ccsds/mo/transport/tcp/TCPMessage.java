@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -178,21 +178,24 @@ public class TCPMessage implements MALMessage, java.io.Serializable {
 		try {
 			MALEncodingContext ctx = new MALEncodingContext(header, operation, 0, qosProperties, qosProperties);
 
-			if (null != header) {
-				header.encodeMessageHeader(out);
-				TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### header -> " + ((ByteArrayOutputStream) out).size());
-			} else {
+			if (header == null)
 				throw new MALException("Internal error encoding message, header NULL");
-			}
-			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### body=" + body);
+
+			header.encodeMessageHeader(out);
+			TCPTransport.RLOGGER.log(Level.FINE, "##### header -> " + ((ByteArrayOutputStream) out).size());
+
+//			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t%%%%% body=" + body);
+//			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t%%%%% Encode body " + enc2);
+//			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t%%%%% total -> " + ((ByteArrayOutputStream) out2).size());
 
 			// Now encode the body with the specified encoding
 			body.encodeMessageBody(streamFactory, enc, out, header.getInteractionStage(), ctx);
+//			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t%%%%% total -> " + ((ByteArrayOutputStream) out2).size());
 			// TODO (AF): No longer needed.
 			// Be careful, flush method throws a NPE with encoding wrapper.
-//			enc.flush();
-			
-			TCPTransport.RLOGGER.log(Level.FINEST, "\n\n\t##### total -> " + ((ByteArrayOutputStream) out).size());
+			enc.flush();
+
+			TCPTransport.RLOGGER.log(Level.FINE, "##### total -> " + ((ByteArrayOutputStream) out).size());
 		} catch (Exception ex) {
 			throw new MALException("Internal error encoding message", ex);
 		}
