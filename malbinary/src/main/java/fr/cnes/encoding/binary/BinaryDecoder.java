@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,10 +62,11 @@ import org.ccsds.moims.mo.mal.structures.factory.UShortFactory;
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
-import fr.cnes.encoding.binary.Decoder;
-import fr.cnes.encoding.binary.DurationDecoder;
-import fr.cnes.encoding.binary.FineTimeDecoder;
-import fr.cnes.encoding.binary.TimeDecoder;
+import fr.cnes.encoding.base.BinaryListDecoder;
+import fr.cnes.encoding.base.Decoder;
+import fr.cnes.encoding.base.DurationDecoder;
+import fr.cnes.encoding.base.FineTimeDecoder;
+import fr.cnes.encoding.base.TimeDecoder;
 
 public class BinaryDecoder implements MALDecoder {
 
@@ -301,7 +302,7 @@ public class BinaryDecoder implements MALDecoder {
 
   public Float decodeFloat() throws MALException {
     try {
-      return new Float(Float.intBitsToFloat(decoder.read32()));
+      return new Float(Float.intBitsToFloat(decodeInteger()));
     } catch (Exception e) {
       throw new MALException(e.toString(), e);
     }
@@ -321,7 +322,7 @@ public class BinaryDecoder implements MALDecoder {
 
   public Double decodeDouble() throws MALException {
     try {
-      return new Double(Double.longBitsToDouble(decoder.read64()));
+      return new Double(Double.longBitsToDouble(decodeLong()));
     } catch (Exception e) {
       throw new MALException(e.toString(), e);
     }

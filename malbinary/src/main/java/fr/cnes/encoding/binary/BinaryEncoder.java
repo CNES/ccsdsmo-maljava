@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017  2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,10 +45,12 @@ import org.ccsds.moims.mo.mal.structures.UShort;
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
-import fr.cnes.encoding.binary.DurationEncoder;
-import fr.cnes.encoding.binary.Encoder;
-import fr.cnes.encoding.binary.FineTimeEncoder;
-import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.base.BinaryListEncoder;
+import fr.cnes.encoding.base.DurationEncoder;
+import fr.cnes.encoding.base.Encoder;
+import fr.cnes.encoding.base.FineTimeEncoder;
+import fr.cnes.encoding.base.TimeEncoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 
 public class BinaryEncoder implements MALEncoder {
 
@@ -68,7 +70,7 @@ public class BinaryEncoder implements MALEncoder {
   public BinaryEncoder(OutputStream os, boolean byteArrayString, 
       TimeEncoder timeEncoder, FineTimeEncoder fineTimeEncoder,
       DurationEncoder durationEncoder) {
-    encoder = new Encoder(os);
+    encoder = new OutputStreamEncoder(os);
     this.byteArrayString = byteArrayString;
     this.timeEncoder = timeEncoder;
     this.fineTimeEncoder = fineTimeEncoder;
@@ -331,7 +333,7 @@ public class BinaryEncoder implements MALEncoder {
   public void encodeFloat(Float element) throws MALException {
     if (element == null) throw new IllegalArgumentException("Null element");
     try {
-      encoder.write32(Float.floatToIntBits(element.floatValue()));
+      encodeInteger(Float.floatToIntBits(element.floatValue()));
     } catch (Exception e) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "", e);
@@ -357,7 +359,7 @@ public class BinaryEncoder implements MALEncoder {
   public void encodeDouble(Double element) throws MALException {
     if (element == null) throw new IllegalArgumentException("Null element");
     try {
-      encoder.write64(Double.doubleToLongBits(element.doubleValue()));
+      encodeLong(Double.doubleToLongBits(element.doubleValue()));
     } catch (Exception e) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "", e);
