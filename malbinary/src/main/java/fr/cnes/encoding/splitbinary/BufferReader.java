@@ -21,24 +21,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import fr.cnes.encoding.base.Reader;
 
 public class BufferReader implements Reader {
-  
   private byte[] buf;
-  
+  // Offset of bitfield in buffer.
+  private int bfoff;
+  // Index of current decoded bit in bitfield.
+  private int bfidx;
+  // Number of bits in bitfield.
+  private int bflen;
+  // Index of current decoded byte in buffer.
   private int index;
-
-  public BufferReader(byte[] buf) {
+  
+  public BufferReader(byte[] buf) throws Exception {
     this(buf, 0);
   }
   
-  public BufferReader(byte[] buf, int offset) {
-    super();
+  public BufferReader(byte[] buf, int offset) throws Exception {
     this.buf = buf;
     index = offset;
+	bflen = getUnsignedVarInt();
+	bfoff = index;
+	bfidx = 0;
+    index = bfoff + bflen;
   }
 
   public int getUnsignedVarInt() throws Exception {
@@ -73,7 +81,11 @@ public class BufferReader implements Reader {
   }
 
   public boolean getBoolean() throws Exception {
-	  return Binary.TRUE != getByte() ? Boolean.FALSE : Boolean.TRUE;
+	  if (bflen <= bfidx) return false;
+	  
+	  boolean value = (((buf[bfoff + (bfidx >> 3)] >> (bfidx%8)) & 1) == SplitBinary.TRUE);
+	  bfidx += 1;
+	  return value;
   }
-  
+
 }

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -33,19 +33,17 @@ public class BufferDecoder implements Decoder {
 
   private Reader buffer;
   
-  private boolean varintSupported;
+  private final boolean varintSupported = true;
 
   public BufferDecoder(Reader buffer) {
     this.buffer = buffer;
-    varintSupported = true;
   }
-
+  
   public boolean isVarintSupported() {
-    return varintSupported;
+	  return true;
   }
 
   public void setVarintSupported(boolean varintSupported) {
-    this.varintSupported = varintSupported;
   }
 
   public byte readByte() throws Exception{
@@ -184,10 +182,6 @@ public class BufferDecoder implements Decoder {
         ((((long) buffer.getByte()) &0xFFL) << 24) | ((((long) buffer.getByte()) &0xFFL) << 16) |
         ((((long) buffer.getByte()) &0xFFL) << 8) | (((long) buffer.getByte()) &0xFFL);
   }
-  
-  public boolean readBoolean() throws Exception {
-      return buffer.getBoolean();
-  }
 
   public BigInteger readULong() throws Exception {
     return BigInteger.valueOf(readUnsignedVarLong());
@@ -212,8 +206,12 @@ public class BufferDecoder implements Decoder {
   }
 
   public boolean isNull() throws Exception {
-    // isNull => present = false
+	// isNull => present = false
     return ! readBoolean();
+  }
+  
+  public boolean readBoolean() throws Exception {
+      return buffer.getBoolean();
   }
 
   public void close() throws IOException {

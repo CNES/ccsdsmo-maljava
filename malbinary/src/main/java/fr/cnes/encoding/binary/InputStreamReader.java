@@ -25,6 +25,8 @@ package fr.cnes.encoding.binary;
 
 import java.io.InputStream;
 
+import fr.cnes.encoding.base.Reader;
+
 public class InputStreamReader implements Reader {
   
   private InputStream is;
@@ -41,7 +43,17 @@ public class InputStreamReader implements Reader {
     index = 0;
     size = 0;
   }
-  
+
+  public int getUnsignedVarInt() throws Exception {
+	  int value = 0;
+	  int i;
+	  int b;
+	  for (i = 0; ((b = getByte()) & 0x80) != 0; i += 7) {
+		  value |= (b & 0x7f) << i;
+	  }
+	  return value | b << i;
+  }
+
   private void read(int byteNumber) throws Exception {
     size = 0;
     int i = 0;
@@ -59,7 +71,7 @@ public class InputStreamReader implements Reader {
   }
 
   public String getString(int length) throws Exception {
-    return new String(getByteArray(length), Encoder.utf8);
+    return new String(getByteArray(length), Binary.utf8);
   }
 
   public byte[] getByteArray(int length) throws Exception {
@@ -80,6 +92,10 @@ public class InputStreamReader implements Reader {
     }
     System.arraycopy(buffer, index, res, offset, length);
     return res;
+  }
+
+  public boolean getBoolean() throws Exception {
+	return getByte() == Binary.TRUE;
   }
 
 }

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,11 +49,11 @@ import fr.cnes.encoding.base.DurationEncoder;
 import fr.cnes.encoding.base.FineTimeEncoder;
 import fr.cnes.encoding.base.OpenByteArrayOutputStream;
 import fr.cnes.encoding.base.TimeEncoder;
-import fr.cnes.encoding.binary.OutputStreamEncoder;
 
-public class BinaryElementOutputStream implements MALElementOutputStream {
+// TODO (AF): It seems to be identical to BinaryElementOutputStream
+public class SplitBinaryElementOutputStream implements MALElementOutputStream {
 
-  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(BinaryElementOutputStream.class.getName());
+  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(SplitBinaryElementOutputStream.class.getName());
 
   public final static byte[] PAD = new byte[4];
   
@@ -61,7 +61,7 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
 
   private OutputStream os;
 
-  protected BinaryEncoder encoder;
+  protected SplitBinaryEncoder encoder;
   
   private boolean encodedUpdate;
   
@@ -71,7 +71,7 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
   
   private DurationEncoder durationEncoder;
 
-  BinaryElementOutputStream(OutputStream os, boolean encodedUpdate, 
+  SplitBinaryElementOutputStream(OutputStream os, boolean encodedUpdate, 
       boolean byteArrayString, TimeEncoder timeEncoder,
       FineTimeEncoder fineTimeEncoder,
       DurationEncoder durationEncoder) {
@@ -80,16 +80,15 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
     this.timeEncoder = timeEncoder;
     this.fineTimeEncoder = fineTimeEncoder;
     this.durationEncoder = durationEncoder;
-    encoder = new BinaryEncoder(os, byteArrayString, 
+    encoder = new SplitBinaryEncoder(os, byteArrayString, 
         timeEncoder, fineTimeEncoder, durationEncoder);
   }
   
   public boolean isVarintSupported() {
-    return encoder.isVarintSupported();
+    return true;
   }
 
   public void setVarintSupported(boolean varintSupported) {
-    encoder.setVarintSupported(varintSupported);
   }
 
   private void encodePresent(boolean present) throws MALException {
@@ -121,7 +120,7 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
       case 1:
         // Extra information (polymorphism)
         if (object == null) {
-          encodePresent(false);
+        	encodePresent(false);
         } else {
         	encodePresent(true);
           Element element = castToElement(object);
@@ -166,7 +165,7 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
         }
       } else {
         if (object == null) {
-          encodePresent(false);
+        	encodePresent(false);
         } else {
         	encodePresent(true);
           if (object instanceof MALEncodedElementList) {
@@ -306,9 +305,8 @@ public class BinaryElementOutputStream implements MALElementOutputStream {
       
       // Need to create another encoder for separate updates.
       // Should have exactly the same configuration as 'encoder'.
-      BinaryEncoder updateEncoder = new BinaryEncoder(baos, encoder.isByteArrayString(), 
+      SplitBinaryEncoder updateEncoder = new SplitBinaryEncoder(baos, encoder.isByteArrayString(), 
           timeEncoder, fineTimeEncoder, durationEncoder);
-      updateEncoder.setVarintSupported(isVarintSupported());
       
       encoder.getEncoder().writeUnsignedInt(updateList.size());
       for (Object update : updateList) {

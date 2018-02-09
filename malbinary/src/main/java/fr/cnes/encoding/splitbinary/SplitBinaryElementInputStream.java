@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.InputStream;
 
@@ -58,15 +58,11 @@ import fr.cnes.encoding.base.Decoder;
 import fr.cnes.encoding.base.DurationDecoder;
 import fr.cnes.encoding.base.FineTimeDecoder;
 import fr.cnes.encoding.base.TimeDecoder;
-import fr.cnes.encoding.binary.BufferDecoder;
-import fr.cnes.encoding.binary.BufferReader;
-import fr.cnes.encoding.binary.OutputStreamEncoder;
-import fr.cnes.encoding.binary.InputStreamDecoder;
 
-public class BinaryElementInputStream implements MALElementInputStream {
+public class SplitBinaryElementInputStream implements MALElementInputStream {
   
   public final static Logger logger = fr.dyade.aaa.common.Debug
-      .getLogger(BinaryElementInputStream.class.getName());
+      .getLogger(SplitBinaryElementInputStream.class.getName());
   
   public final static long[] attributeShortForms = {
     Blob.BLOB_SHORT_FORM,
@@ -91,28 +87,28 @@ public class BinaryElementInputStream implements MALElementInputStream {
   
   private Decoder decoder;
   
-  private BinaryDecoder malDecoder;
+  private SplitBinaryDecoder malDecoder;
   
   private boolean encodedUpdate;
   
   private boolean keepPublishUpdateEncoded;
   
-  BinaryElementInputStream(InputStream is, boolean encodedUpdate, 
+  SplitBinaryElementInputStream(InputStream is, boolean encodedUpdate, 
       boolean byteArrayString, TimeDecoder timeDecoder,
-      FineTimeDecoder fineTimeDecoder, DurationDecoder durationDecoder) {
+      FineTimeDecoder fineTimeDecoder, DurationDecoder durationDecoder) throws Exception {
     this.encodedUpdate = encodedUpdate;
     decoder = new InputStreamDecoder(is);
     //decoder = new BufferDecoder(new InputStreamReader(is));
-    malDecoder = new BinaryDecoder(decoder, byteArrayString, 
+    malDecoder = new SplitBinaryDecoder(decoder, byteArrayString, 
         timeDecoder, fineTimeDecoder, durationDecoder);
   }
   
-  BinaryElementInputStream(byte[] bytes, int offset, 
+  SplitBinaryElementInputStream(byte[] bytes, int offset, 
       boolean encodedUpdate, boolean byteArrayString, TimeDecoder timeDecoder,
-      FineTimeDecoder fineTimeDecoder, DurationDecoder durationDecoder) {
+      FineTimeDecoder fineTimeDecoder, DurationDecoder durationDecoder) throws Exception {
     this.encodedUpdate = encodedUpdate;
     decoder = new BufferDecoder(new BufferReader(bytes, offset));
-    malDecoder = new BinaryDecoder(decoder, byteArrayString, 
+    malDecoder = new SplitBinaryDecoder(decoder, byteArrayString, 
         timeDecoder, fineTimeDecoder, durationDecoder);
   }
   
@@ -125,9 +121,9 @@ public class BinaryElementInputStream implements MALElementInputStream {
   }
 
   private boolean isNull() throws MALException {
-    byte b;
     try {
-      return malDecoder.getDecoder().isNull();
+      // Null => isPresent false
+      return !malDecoder.getDecoder().readBoolean();
     } catch (Exception e) {
       throw new MALException(e.getMessage(), e);
     }
@@ -326,7 +322,7 @@ public class BinaryElementInputStream implements MALElementInputStream {
   
   private Object resolveShortForm(Object[] lastShortForms) throws MALException {
     if (lastShortForms != null
-        && lastShortForms.length == BinaryElementOutputStream.ATTRIBUTE_TYPES_COUNT
+        && lastShortForms.length == SplitBinaryElementOutputStream.ATTRIBUTE_TYPES_COUNT
         && Blob.BLOB_SHORT_FORM.equals(lastShortForms[0])) {
       // Element declared as a MAL::Attribute
       try {

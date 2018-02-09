@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,8 @@ import java.math.BigInteger;
 
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
+
+import fr.cnes.encoding.base.Decoder;
 
 public class InputStreamDecoder implements Decoder {
   
@@ -58,38 +60,9 @@ public class InputStreamDecoder implements Decoder {
   public void setVarintSupported(boolean varintSupported) {
     this.varintSupported = varintSupported;
   }
-
-  public int readUnsignedVarInt() throws Exception {
-    int value = 0;
-    int i;
-    int b;
-    for (i = 0; ((b = is.read()) & 0x80) != 0; i += 7) {
-      value |= (b & 0x7f) << i;
-    }
-    return value | b << i;
-  }
-
-  public long readUnsignedVarLong() throws Exception {
-    long value = 0L;
-    int i;
-    long b;
-    for (i = 0; ((b = is.read()) & 128L) != 0L; i += 7) {
-      value |= (b & 127L) << i;
-    }
-    return value | b << i;
-  }
   
-  private byte[] readFully(int length) throws Exception {
-    int count = 0;
-    if (length > buf.length) buf = new byte[length];
-    
-    int nb = -1;
-    do {
-      nb = is.read(buf, count, length-count);
-      if (nb < 0) throw new Exception("Unexpected end of stream");
-      count += nb;
-    } while (count != length);
-    return buf;
+  public byte readByte() throws Exception {
+    return (byte) is.read();
   }
   
   public short readSignedShort() throws Exception {
@@ -109,15 +82,6 @@ public class InputStreamDecoder implements Decoder {
     }
   }
   
-  public short read16() throws Exception {
-    return (short) (((is.read() &0xFF) << 8) | (is.read() &0xFF));
-  }
-  
-  public int read24() throws Exception {
-    return ((is.read() &0xFF) << 16) |
-            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
-  }
-  
   public int readSignedInt() throws Exception {
     if (varintSupported) {
       int i = readUnsignedVarInt();
@@ -134,10 +98,25 @@ public class InputStreamDecoder implements Decoder {
       return read32();
     }
   }
-  
-  public int read32() throws Exception {
-    return ((is.read() &0xFF) << 24) | ((is.read() &0xFF) << 16) |
-            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
+
+  public int readUnsignedVarInt() throws Exception {
+    int value = 0;
+    int i;
+    int b;
+    for (i = 0; ((b = is.read()) & 0x80) != 0; i += 7) {
+      value |= (b & 0x7f) << i;
+    }
+    return value | b << i;
+  }
+
+  public long readUnsignedVarLong() throws Exception {
+    long value = 0L;
+    int i;
+    long b;
+    for (i = 0; ((b = is.read()) & 128L) != 0L; i += 7) {
+      value |= (b & 127L) << i;
+    }
+    return value | b << i;
   }
   
   public long readSignedLong() throws Exception {
@@ -177,14 +156,7 @@ public class InputStreamDecoder implements Decoder {
       return new BigInteger(bigIntegerBytes);
     }
   }
-  
-  public long read64() throws Exception {
-    return ((((long) is.read()) &0xFFL) << 56) | ((((long) is.read()) &0xFFL) << 48) |
-      ((((long) is.read()) &0xFFL) << 40) | ((((long) is.read()) &0xFFL) << 32) |
-      ((((long) is.read()) &0xFFL) << 24) | ((((long) is.read()) &0xFFL) << 16) |
-      ((((long) is.read()) &0xFFL) << 8) | (((long) is.read()) &0xFFL);
-  }
-  
+
   public String readNullableString() throws Exception {
     if (isNull()) return null;
     else return readString();
@@ -200,27 +172,25 @@ public class InputStreamDecoder implements Decoder {
       return EMPTY_STRING;
     } else if (length > 0) {
       byte[] tab = readFully(length);
-      return new String(tab, 0, length, Encoder.utf8);
+      return new String(tab, 0, length, Binary.utf8);
     } else {
       throw new Exception("bad string length: " + length);
     }
   }
   
-  public void readFully(byte[] buf) throws Exception {
+  private byte[] readFully(int length) throws Exception {
     int count = 0;
+    if (length > buf.length) buf = new byte[length];
     
     int nb = -1;
     do {
-      nb = is.read(buf, count, buf.length-count);
+      nb = is.read(buf, count, length-count);
       if (nb < 0) throw new Exception("Unexpected end of stream");
       count += nb;
-    } while (count != buf.length);
+    } while (count != length);
+    return buf;
   }
-  
-  public byte readByte() throws Exception {
-    return (byte) is.read();
-  }
-  
+
   public byte[] readNullableByteArray() throws Exception {
     if (isNull()) return null;
     else return readByteArray();
@@ -242,15 +212,47 @@ public class InputStreamDecoder implements Decoder {
       return tab;
     }
   }
+    
+  public void readFully(byte[] buf) throws Exception {
+    int count = 0;
+    
+    int nb = -1;
+    do {
+      nb = is.read(buf, count, buf.length-count);
+      if (nb < 0) throw new Exception("Unexpected end of stream");
+      count += nb;
+    } while (count != buf.length);
+  }
+
+  public short read16() throws Exception {
+    return (short) (((is.read() &0xFF) << 8) | (is.read() &0xFF));
+  }
+  
+  public int read24() throws Exception {
+    return ((is.read() &0xFF) << 16) |
+            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
+  }
+  
+  public int read32() throws Exception {
+    return ((is.read() &0xFF) << 24) | ((is.read() &0xFF) << 16) |
+            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
+  }
+  
+  public long read64() throws Exception {
+    return ((((long) is.read()) &0xFFL) << 56) | ((((long) is.read()) &0xFFL) << 48) |
+      ((((long) is.read()) &0xFFL) << 40) | ((((long) is.read()) &0xFFL) << 32) |
+      ((((long) is.read()) &0xFFL) << 24) | ((((long) is.read()) &0xFFL) << 16) |
+      ((((long) is.read()) &0xFFL) << 8) | (((long) is.read()) &0xFFL);
+  }
   
   public boolean isNull() throws Exception {
-    byte b = readByte();
-    return (b == Encoder.NULL);
+	// isNull => isPresent = false
+    return ! readBoolean();
   }
   
   public boolean readBoolean() throws Exception {
     byte b = (byte) is.read();
-    return (b == Encoder.TRUE);
+    return (b == Binary.TRUE);
   }
   
   public void close() throws IOException {

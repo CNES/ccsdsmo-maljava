@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,59 +21,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.base;
 
-import fr.cnes.encoding.base.Reader;
+import org.ccsds.moims.mo.mal.MALException;
 
-public class BufferReader implements Reader {
-  
-  private byte[] buf;
-  
-  private int index;
+/**
+ * Class used for binary time encoding.
+ *
+ * It uses CCSDS Day Segmented Time Code (CDS) with P-field assumed to be
+ * "01000000" for Time and "01000010" for FineTime
+ */
+public class BinaryTimeEncoder implements TimeEncoder {
+	/**
+	 * Converts MAL seconds timestamp to CDS with CCSDS Epoch, 16 bit day segment,
+	 * 32 bit ms of day segment, then writes it into the associated binary encoder.
+	 */
+	public void encode(long time, Encoder encoder) throws Exception {
+		time += BinaryTime.MILLISECONDS_FROM_CCSDS_TO_UNIX_EPOCH;
+		long days = time / BinaryTime.MILLISECONDS_IN_DAY;
+		long millisecondsInDay = (time % BinaryTime.MILLISECONDS_IN_DAY);
 
-  public BufferReader(byte[] buf) {
-    this(buf, 0);
-  }
-  
-  public BufferReader(byte[] buf, int offset) {
-    super();
-    this.buf = buf;
-    index = offset;
-  }
+		if (days > 65535) {
+			// This check allows values bigger than maximum signed short, because the encoded value is an unsigned short
+			throw new MALException("Overflow of unsigned 16-bit days when encoding MAL Time: " + days);
+		}
 
-  public int getUnsignedVarInt() throws Exception {
-	  int value = 0;
-	  int i;
-	  int b;
-	  for (i = 0; ((b = getByte()) & 0x80) != 0; i += 7) {
-		  value |= (b & 0x7f) << i;
-	  }
-	  return value | b << i;
-  }
-
-  public byte getByte() {
-    return buf[index++];
-  }
-
-  public String getString(int length) {
-    String s = new String(buf, index, length);
-    index += length;
-    return s;
-  }
-
-  public byte[] getByteArray(int length) {
-    byte[] res = new byte[length];
-    System.arraycopy(buf, index, res, 0, length);
-    index += length;
-    return res;
-  }
-  
-  public int getIndex() {
-    return index;
-  }
-
-  public boolean getBoolean() throws Exception {
-	  return Binary.TRUE != getByte() ? Boolean.FALSE : Boolean.TRUE;
-  }
-  
+		encoder.write16((short) days);
+		encoder.write32((int) millisecondsInDay);
+	}
 }

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,10 +47,9 @@ import fr.cnes.encoding.base.OpenByteArrayOutputStream;
 import fr.cnes.encoding.base.TimeDecoder;
 import fr.cnes.encoding.base.TimeEncoder;
 
-public class BinaryElementStreamFactory extends MALElementStreamFactory {
+public class SplitBinaryElementStreamFactory extends MALElementStreamFactory {
 
-  public final static Logger logger = fr.dyade.aaa.common.Debug
-      .getLogger(BinaryElementStreamFactory.class.getName());
+  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(SplitBinaryElementStreamFactory.class.getName());
 
   public final static String ENCODED_UPDATE_PROPERTY = "fr.cnes.encoding.binary.encoded.update";
   
@@ -86,19 +85,21 @@ public class BinaryElementStreamFactory extends MALElementStreamFactory {
   
   private DurationDecoder durationDecoder;
   
-  private boolean varintSupported;
+  // TOTO (AF):
+//  private boolean varintSupported;
   
-  public BinaryElementStreamFactory() {
+  public SplitBinaryElementStreamFactory() {
 
   }
 
-  public boolean isVarintSupported() {
-    return varintSupported;
-  }
-
-  public void setVarintSupported(boolean varintSupported) {
-    this.varintSupported = varintSupported;
-  }
+  // TODO (AF):
+//  public boolean isVarintSupported() {
+//    return varintSupported;
+//  }
+//
+//  public void setVarintSupported(boolean varintSupported) {
+//    this.varintSupported = varintSupported;
+//  }
 
   public boolean isEncodedUpdate() {
     return encodedUpdate;
@@ -164,25 +165,28 @@ public class BinaryElementStreamFactory extends MALElementStreamFactory {
     this.durationDecoder = durationDecoder;
   }
 
-  public MALElementInputStream createInputStream(InputStream is)
-      throws MALException {
+  public MALElementInputStream createInputStream(InputStream is) throws MALException {
     if (is == null)
       throw new IllegalArgumentException("Null input stream");
-    BinaryElementInputStream eis = new BinaryElementInputStream(is,
-        encodedUpdate, byteArrayString, timeDecoder, fineTimeDecoder,
-        durationDecoder);
-    eis.setVarintSupported(varintSupported);
+    SplitBinaryElementInputStream eis;
+	try {
+		eis = new SplitBinaryElementInputStream(is,
+		    encodedUpdate, byteArrayString, timeDecoder, fineTimeDecoder,
+		    durationDecoder);
+	} catch (Exception exc) {
+		throw new MALException(exc.getMessage());
+	}
+    eis.setVarintSupported(true);
     return eis;
   }
 
-  public MALElementOutputStream createOutputStream(OutputStream os)
-      throws MALException {
+  public MALElementOutputStream createOutputStream(OutputStream os) throws MALException {
     if (os == null)
       throw new IllegalArgumentException("Null output stream");
-    BinaryElementOutputStream eos = new BinaryElementOutputStream(os,
+    SplitBinaryElementOutputStream eos = new SplitBinaryElementOutputStream(os,
         encodedUpdate, byteArrayString, timeEncoder, fineTimeEncoder,
         durationEncoder);
-    eos.setVarintSupported(varintSupported);
+    eos.setVarintSupported(true);
     return eos;
   }
 
@@ -266,9 +270,14 @@ public class BinaryElementStreamFactory extends MALElementStreamFactory {
       throws IllegalArgumentException, MALException {
     if (bytes == null)
       throw new IllegalArgumentException("Null input stream");
-    BinaryElementInputStream eis = new BinaryElementInputStream(bytes, offset, encodedUpdate, 
-        byteArrayString, timeDecoder, fineTimeDecoder, durationDecoder);
-    eis.setVarintSupported(varintSupported);
+    SplitBinaryElementInputStream eis;
+	try {
+		eis = new SplitBinaryElementInputStream(bytes, offset, encodedUpdate, 
+		    byteArrayString, timeDecoder, fineTimeDecoder, durationDecoder);
+	} catch (Exception exc) {
+		throw new MALException(exc.getMessage());
+	}
+    eis.setVarintSupported(true);
     return eis;
   }
 
@@ -280,10 +289,10 @@ public class BinaryElementStreamFactory extends MALElementStreamFactory {
     if (ctx == null)
       throw new IllegalArgumentException("Null MALEncodingContext");
     OpenByteArrayOutputStream baos = new OpenByteArrayOutputStream();
-    BinaryElementOutputStream eos = new BinaryElementByteArrayOutputStream(
+    SplitBinaryElementOutputStream eos = new SplitBinaryElementByteArrayOutputStream(
         baos, encodedUpdate, byteArrayString, timeEncoder, fineTimeEncoder,
         durationEncoder);
-    eos.setVarintSupported(varintSupported);
+    eos.setVarintSupported(true);
     for (int i = 0; i < elements.length; i++) {
       ctx.setBodyElementIndex(i);
       eos.writeElement(elements[i], ctx);

@@ -21,35 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 
+import org.objectweb.util.monolog.api.BasicLevel;
+import org.objectweb.util.monolog.api.Logger;
+
 import fr.cnes.encoding.base.Decoder;
-import fr.cnes.encoding.base.Reader;
 
-public class BufferDecoder implements Decoder {
-
-  private Reader buffer;
+public class InputStreamDecoder implements Decoder {
   
-  private boolean varintSupported;
+  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(InputStreamDecoder.class.getName());
 
-  public BufferDecoder(Reader buffer) {
-    this.buffer = buffer;
-    varintSupported = true;
+  public static final String EMPTY_STRING = "";
+  public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
+  private byte[] buf;
+  
+  private byte[] bf;
+  private int bflen;
+  private int bfidx;
+
+  private InputStream is;
+  
+  private final boolean varintSupported = true;
+  
+  public InputStreamDecoder(InputStream is) throws Exception {
+    this.is = is;
+    int len = readUnsignedVarInt();
+	bf = readByteArray(len);
+	bfidx = 0;
+	bflen = 8*len;
+    buf = new byte[8];
   }
-
+  
   public boolean isVarintSupported() {
-    return varintSupported;
+	  return true;
   }
 
   public void setVarintSupported(boolean varintSupported) {
-    this.varintSupported = varintSupported;
   }
 
-  public byte readByte() throws Exception{
-    return buffer.getByte();
+  public byte readByte() throws Exception {
+    return (byte) is.read();
   }
   
   public short readSignedShort() throws Exception {
@@ -77,7 +94,7 @@ public class BufferDecoder implements Decoder {
       return read32();
     }
   }
-
+  
   public int readUnsignedInt() throws Exception {
     if (varintSupported) {
       return readUnsignedVarInt();
@@ -90,7 +107,7 @@ public class BufferDecoder implements Decoder {
     int value = 0;
     int i;
     int b;
-    for (i = 0; ((b = buffer.getByte()) & 0x80) != 0; i += 7) {
+    for (i = 0; ((b = is.read()) & 0x80) != 0; i += 7) {
       value |= (b & 0x7f) << i;
     }
     return value | b << i;
@@ -100,12 +117,21 @@ public class BufferDecoder implements Decoder {
     long value = 0L;
     int i;
     long b;
-    for (i = 0; ((b = buffer.getByte()) & 128L) != 0L; i += 7) {
+    for (i = 0; ((b = is.read()) & 128L) != 0L; i += 7) {
       value |= (b & 127L) << i;
     }
     return value | b << i;
   }
-
+  
+  public long readSignedLong() throws Exception {
+    if (varintSupported) {
+      long l = readUnsignedVarLong();
+      return ((l >>> 1) ^ -(l & 1));
+    } else {
+      return read64();
+    }
+  }
+  
   public BigInteger readUnsignedLong() throws Exception {
     if (varintSupported) {
       long l = readUnsignedVarLong();
@@ -123,100 +149,120 @@ public class BufferDecoder implements Decoder {
     } else {
       byte[] bigIntegerBytes = new byte[9];
       bigIntegerBytes[0] = 0x00;
-      bigIntegerBytes[1] = buffer.getByte();
-      bigIntegerBytes[2] = buffer.getByte();
-      bigIntegerBytes[3] = buffer.getByte();
-      bigIntegerBytes[4] = buffer.getByte();
-      bigIntegerBytes[5] = buffer.getByte();
-      bigIntegerBytes[6] = buffer.getByte();
-      bigIntegerBytes[7] = buffer.getByte();
-      bigIntegerBytes[8] = buffer.getByte();
+      bigIntegerBytes[1] = (byte) is.read();
+      bigIntegerBytes[2] = (byte) is.read();
+      bigIntegerBytes[3] = (byte) is.read();
+      bigIntegerBytes[4] = (byte) is.read();
+      bigIntegerBytes[5] = (byte) is.read();
+      bigIntegerBytes[6] = (byte) is.read();
+      bigIntegerBytes[7] = (byte) is.read();
+      bigIntegerBytes[8] = (byte) is.read();
       return new BigInteger(bigIntegerBytes);
     }
   }
 
-  public String readNullableString() throws Exception{
+  public String readNullableString() throws Exception {
     if (isNull()) return null;
     else return readString();
   }
-
-  public String readString() throws Exception{
+  
+  public String readString() throws Exception {
     int length = readUnsignedInt();
     return readString(length);
   }
   
+  public String readString(int length) throws Exception {
+    if (length == 0) {
+      return EMPTY_STRING;
+    } else if (length > 0) {
+      byte[] tab = readFully(length);
+      return new String(tab, 0, length, SplitBinary.utf8);
+    } else {
+      throw new Exception("bad string length: " + length);
+    }
+  }
+  
+  private byte[] readFully(int length) throws Exception {
+    int count = 0;
+    if (length > buf.length) buf = new byte[length];
+    
+    int nb = -1;
+    do {
+      nb = is.read(buf, count, length-count);
+      if (nb < 0) throw new Exception("Unexpected end of stream");
+      count += nb;
+    } while (count != length);
+    return buf;
+  }
+
   public byte[] readNullableByteArray() throws Exception {
     if (isNull()) return null;
     else return readByteArray();
   }
-
+  
   public byte[] readByteArray() throws Exception {
     int length = readUnsignedInt();
     return readByteArray(length);
   }
   
-  public long readSignedLong() throws Exception {
-    if (varintSupported) {
-      long l = readUnsignedVarLong();
-      return ((l >>> 1) ^ -(l & 1));
+  public byte[] readByteArray(int length) throws Exception {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "read byte array length=" + length);
+    if (length == 0) {
+      return EMPTY_BYTE_ARRAY;
     } else {
-      return read64();
+      byte[] tab = new byte[length];
+      readFully(tab);
+      return tab;
     }
   }
-  
+    
+  public void readFully(byte[] buf) throws Exception {
+    int count = 0;
+    
+    int nb = -1;
+    do {
+      nb = is.read(buf, count, buf.length-count);
+      if (nb < 0) throw new Exception("Unexpected end of stream");
+      count += nb;
+    } while (count != buf.length);
+  }
+
   public short read16() throws Exception {
-    return (short) (((buffer.getByte() &0xFF) << 8) | (buffer.getByte() &0xFF));
+    return (short) (((is.read() &0xFF) << 8) | (is.read() &0xFF));
   }
   
   public int read24() throws Exception {
-    return ((buffer.getByte() &0xFF) << 16) |
-        ((buffer.getByte() &0xFF) << 8) | (buffer.getByte() &0xFF);
+    return ((is.read() &0xFF) << 16) |
+            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
   }
   
   public int read32() throws Exception {
-    return ((buffer.getByte() &0xFF) << 24) | ((buffer.getByte() &0xFF) << 16) |
-            ((buffer.getByte() &0xFF) << 8) | (buffer.getByte() &0xFF);
+    return ((is.read() &0xFF) << 24) | ((is.read() &0xFF) << 16) |
+            ((is.read() &0xFF) << 8) | (is.read() &0xFF);
   }
   
   public long read64() throws Exception {
-    return ((((long) buffer.getByte()) &0xFFL) << 56) | ((((long) buffer.getByte()) &0xFFL) << 48) |
-        ((((long) buffer.getByte()) &0xFFL) << 40) | ((((long) buffer.getByte()) &0xFFL) << 32) |
-        ((((long) buffer.getByte()) &0xFFL) << 24) | ((((long) buffer.getByte()) &0xFFL) << 16) |
-        ((((long) buffer.getByte()) &0xFFL) << 8) | (((long) buffer.getByte()) &0xFFL);
+    return ((((long) is.read()) &0xFFL) << 56) | ((((long) is.read()) &0xFFL) << 48) |
+      ((((long) is.read()) &0xFFL) << 40) | ((((long) is.read()) &0xFFL) << 32) |
+      ((((long) is.read()) &0xFFL) << 24) | ((((long) is.read()) &0xFFL) << 16) |
+      ((((long) is.read()) &0xFFL) << 8) | (((long) is.read()) &0xFFL);
+  }
+  
+  public boolean isNull() throws Exception {
+	// isNull => isPresent = false
+    return ! readBoolean();
   }
   
   public boolean readBoolean() throws Exception {
-      return buffer.getBoolean();
-  }
-
-  public BigInteger readULong() throws Exception {
-    return BigInteger.valueOf(readUnsignedVarLong());
-  }
-
-  public String readString(int length) throws Exception {
-    if (length > 0) {
-      return buffer.getString(length);
-    } else if (length == 0) {
-      return "";
-    } else {
-      return null;
-    }
+	  if (bflen <= bfidx) return false;
+	  
+	  boolean value = (((bf[bfidx >> 3] >> (bfidx%8)) & 1) == SplitBinary.TRUE);
+	  bfidx += 1;
+	  return value;
   }
   
-  public byte[] readByteArray(int length) throws Exception {
-    if (length == 0) {
-      return new byte[0];
-    } else {
-      return buffer.getByteArray(length);
-    }
-  }
-
-  public boolean isNull() throws Exception {
-    // isNull => present = false
-    return ! readBoolean();
-  }
-
   public void close() throws IOException {
-    // Do nothing
+    is.close();
   }
 }

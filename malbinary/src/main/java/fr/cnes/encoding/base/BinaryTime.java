@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,59 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.base;
 
-import fr.cnes.encoding.base.Reader;
-
-public class BufferReader implements Reader {
-  
-  private byte[] buf;
-  
-  private int index;
-
-  public BufferReader(byte[] buf) {
-    this(buf, 0);
-  }
-  
-  public BufferReader(byte[] buf, int offset) {
-    super();
-    this.buf = buf;
-    index = offset;
-  }
-
-  public int getUnsignedVarInt() throws Exception {
-	  int value = 0;
-	  int i;
-	  int b;
-	  for (i = 0; ((b = getByte()) & 0x80) != 0; i += 7) {
-		  value |= (b & 0x7f) << i;
-	  }
-	  return value | b << i;
-  }
-
-  public byte getByte() {
-    return buf[index++];
-  }
-
-  public String getString(int length) {
-    String s = new String(buf, index, length);
-    index += length;
-    return s;
-  }
-
-  public byte[] getByteArray(int length) {
-    byte[] res = new byte[length];
-    System.arraycopy(buf, index, res, 0, length);
-    index += length;
-    return res;
-  }
-  
-  public int getIndex() {
-    return index;
-  }
-
-  public boolean getBoolean() throws Exception {
-	  return Binary.TRUE != getByte() ? Boolean.FALSE : Boolean.TRUE;
-  }
-  
+public class BinaryTime {
+	public static final long ONE_MILLION = 1000000L;
+	public static final long MILLISECONDS_FROM_CCSDS_TO_UNIX_EPOCH = 378691200000L;
+	public static final long NANOSECONDS_FROM_CCSDS_TO_UNIX_EPOCH = MILLISECONDS_FROM_CCSDS_TO_UNIX_EPOCH * ONE_MILLION;
+	public static final long MILLISECONDS_IN_DAY = 86400000;
+	public static final long NANOSECONDS_IN_DAY = MILLISECONDS_IN_DAY * ONE_MILLION;
 }

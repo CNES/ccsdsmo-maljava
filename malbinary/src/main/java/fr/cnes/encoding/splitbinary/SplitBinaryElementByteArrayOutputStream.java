@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
   *******************************************************************************/
-package fr.cnes.encoding.binary;
+package fr.cnes.encoding.splitbinary;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,14 +35,14 @@ import fr.cnes.encoding.base.FineTimeEncoder;
 import fr.cnes.encoding.base.OpenByteArrayOutputStream;
 import fr.cnes.encoding.base.TimeEncoder;
 
-public class BinaryElementByteArrayOutputStream extends BinaryElementOutputStream {
+// TODO (AF): It seems to be identical to BinaryElementByteArrayOutputStream except the superclass.
+public class SplitBinaryElementByteArrayOutputStream extends SplitBinaryElementOutputStream {
   
-  public final static Logger logger = fr.dyade.aaa.common.Debug
-      .getLogger(BinaryElementByteArrayOutputStream.class.getName());
+  public final static Logger logger = fr.dyade.aaa.common.Debug.getLogger(SplitBinaryElementByteArrayOutputStream.class.getName());
 
   private OpenByteArrayOutputStream baos;
   
-  public BinaryElementByteArrayOutputStream(OpenByteArrayOutputStream baos, 
+  public SplitBinaryElementByteArrayOutputStream(OpenByteArrayOutputStream baos, 
       boolean encodedUpdate, boolean byteArrayString, 
       TimeEncoder timeEncoder, FineTimeEncoder fineTimeEncoder,
       DurationEncoder durationEncoder) {
