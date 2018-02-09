@@ -23,8 +23,8 @@
   *******************************************************************************/
 package fr.cnes.malspp.encoding;
 
-import fr.cnes.encoding.binary.Decoder;
-import fr.cnes.encoding.binary.DurationDecoder;
+import fr.cnes.encoding.base.Decoder;
+import fr.cnes.encoding.base.DurationDecoder;
 
 public class CUCDurationDecoder implements DurationDecoder {
   

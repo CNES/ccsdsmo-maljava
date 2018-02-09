@@ -27,8 +27,9 @@ import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 import org.orekit.time.AbsoluteDate;
 
-import fr.cnes.encoding.binary.Encoder;
-import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.base.Encoder;
+import fr.cnes.encoding.base.TimeEncoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 
 public class CUCTimeEncoder implements TimeEncoder {
   

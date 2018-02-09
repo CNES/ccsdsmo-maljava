@@ -23,8 +23,9 @@
   *******************************************************************************/
 package fr.cnes.malspp.encoding;
 
-import fr.cnes.encoding.binary.DurationEncoder;
-import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.base.DurationEncoder;
+import fr.cnes.encoding.base.Encoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 
 public class CUCDurationEncoder implements DurationEncoder {
   
