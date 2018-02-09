@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017 - 2018 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,10 +47,6 @@ public class BufferOutputStream extends OutputStream {
   public void write(byte[] bytes, int offset, int length) throws IOException {
     System.arraycopy(bytes, offset, buffer, index, length);
     index += length;
-    /*
-    for (int i = offset; i < length; i++) {
-      buffer[index++] = bytes[i];
-    }*/
   }
 
   @Override
