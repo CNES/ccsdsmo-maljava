@@ -59,7 +59,7 @@ import org.objectweb.util.monolog.api.Logger;
 import fr.cnes.encoding.binary.BufferDecoder;
 import fr.cnes.encoding.binary.BufferOutputStream;
 import fr.cnes.encoding.binary.BufferReader;
-import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 
 public class MALSPPHelper {
 
@@ -350,7 +350,7 @@ public class MALSPPHelper {
       logger.log(BasicLevel.DEBUG, "MALSPPHelper.encodeSecondaryHeaderVariablePart(" + ssh + ')');
     
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    Encoder secondaryHeaderEncoder = new Encoder(baos);
+    OutputStreamEncoder secondaryHeaderEncoder = new OutputStreamEncoder(baos);
     secondaryHeaderEncoder.setVarintSupported(qosConfiguration.isVarintSupported());
     
     if (logger.isLoggable(BasicLevel.DEBUG))
@@ -394,7 +394,7 @@ public class MALSPPHelper {
       logger.log(BasicLevel.DEBUG, "MALSPPHelper.encodeSecondaryHeaderFixedPart(" + ssh + ')');
     byte[] bytes = new byte[encodedSize];
     BufferOutputStream buffer = new BufferOutputStream(bytes);
-    Encoder secondaryHeaderEncoder = new Encoder(buffer);
+    OutputStreamEncoder secondaryHeaderEncoder = new OutputStreamEncoder(buffer);
     secondaryHeaderEncoder.setVarintSupported(qosConfiguration.isVarintSupported());
     
     int versionNumber = ssh.getMalsppVersion();

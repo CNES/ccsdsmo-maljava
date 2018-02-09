@@ -68,7 +68,7 @@ import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
 import fr.cnes.encoding.binary.BufferOutputStream;
-import fr.cnes.encoding.binary.Encoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 import fr.cnes.malspp.transport.MALSPPTransport.QualifiedAPID;
 
 public class MALSPPEndpoint implements MALEndpoint {

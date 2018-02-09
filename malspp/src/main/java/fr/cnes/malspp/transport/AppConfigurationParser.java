@@ -49,12 +49,12 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-import fr.cnes.encoding.binary.DurationDecoder;
-import fr.cnes.encoding.binary.DurationEncoder;
-import fr.cnes.encoding.binary.FineTimeDecoder;
-import fr.cnes.encoding.binary.FineTimeEncoder;
-import fr.cnes.encoding.binary.TimeDecoder;
-import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.base.DurationDecoder;
+import fr.cnes.encoding.base.DurationEncoder;
+import fr.cnes.encoding.base.FineTimeDecoder;
+import fr.cnes.encoding.base.FineTimeEncoder;
+import fr.cnes.encoding.base.TimeDecoder;
+import fr.cnes.encoding.base.TimeEncoder;
 import fr.cnes.encoding.binary.BinaryElementStreamFactory;
 import fr.cnes.malspp.encoding.CDSFineTimeDecoder;
 import fr.cnes.malspp.encoding.CDSFineTimeEncoder;

@@ -60,12 +60,12 @@ import org.ccsds.moims.mo.testbed.util.spp.SpacePacketHeader;
 import org.objectweb.util.monolog.api.BasicLevel;
 import org.objectweb.util.monolog.api.Logger;
 
+import fr.cnes.encoding.base.JavaTimeDecoder;
+import fr.cnes.encoding.base.JavaTimeEncoder;
+import fr.cnes.encoding.base.TimeDecoder;
+import fr.cnes.encoding.base.TimeEncoder;
 import fr.cnes.encoding.binary.BufferOutputStream;
-import fr.cnes.encoding.binary.Encoder;
-import fr.cnes.encoding.binary.JavaTimeDecoder;
-import fr.cnes.encoding.binary.JavaTimeEncoder;
-import fr.cnes.encoding.binary.TimeDecoder;
-import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.binary.OutputStreamEncoder;
 import fr.cnes.malspp.transport.MALSPPEndpoint.PacketCounter;
 import fr.dyade.aaa.common.Daemon;
 
@@ -848,7 +848,7 @@ public class MALSPPTransport implements MALTransport {
           // TODO: should be tested
           data = new byte[packetDataFieldSizeLimit];
           BufferOutputStream buffer = new BufferOutputStream(data);
-          Encoder encoder = new Encoder(buffer);
+          OutputStreamEncoder encoder = new OutputStreamEncoder(buffer);
           encoder.setVarintSupported(appConf.isVarintSupported());
           
           buffer.write(encodedSecHeaderFixedPart);

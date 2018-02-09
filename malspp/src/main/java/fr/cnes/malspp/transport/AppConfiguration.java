@@ -29,12 +29,12 @@ import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 
-import fr.cnes.encoding.binary.DurationDecoder;
-import fr.cnes.encoding.binary.DurationEncoder;
-import fr.cnes.encoding.binary.FineTimeDecoder;
-import fr.cnes.encoding.binary.FineTimeEncoder;
-import fr.cnes.encoding.binary.TimeDecoder;
-import fr.cnes.encoding.binary.TimeEncoder;
+import fr.cnes.encoding.base.DurationDecoder;
+import fr.cnes.encoding.base.DurationEncoder;
+import fr.cnes.encoding.base.FineTimeDecoder;
+import fr.cnes.encoding.base.FineTimeEncoder;
+import fr.cnes.encoding.base.TimeDecoder;
+import fr.cnes.encoding.base.TimeEncoder;
 import fr.cnes.encoding.binary.BinaryElementStreamFactory;
 
 public class AppConfiguration {
