@@ -1,9 +1,37 @@
+/*******************************************************************************
+ * MIT License
+ * 
+ * Copyright (c) 2018 CNES
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+  *******************************************************************************/
 package fr.cnes.encoding;
 
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.util.zip.GZIPInputStream;
 
 import org.ccsds.moims.mo.mal.MALDecoder;
 import org.ccsds.moims.mo.mal.MALEncoder;
@@ -94,22 +122,24 @@ public class Test1 {
 
 	// Encodes with FixedBinary and writes in a file
 	@Test
-	public void testFixedBInaryEncoding() throws Exception {
-		FileOutputStream fos = new FileOutputStream("javafixedbinary.data");
+	public void testFixedBinaryEncoding() throws Exception {
+		FileOutputStream fos = new FileOutputStream("./javafixedbinary.data");
 		TimeEncoder timeEncoder = new BinaryTimeEncoder();
 		FineTimeEncoder fineTimeEncoder = new BinaryFineTimeEncoder();
 		JavaDurationEncoder durationEncoder = new JavaDurationEncoder();
-		BinaryEncoder encoder = new BinaryEncoder(fos, false,  timeEncoder, fineTimeEncoder, durationEncoder);
+		BinaryEncoder encoder = new BinaryEncoder(fos, false, timeEncoder, fineTimeEncoder, durationEncoder);
 		encoder.setVarintSupported(false);
 		testEncoding(encoder);
 		encoder.flush();
 		fos.close();
+		// Compare with reference file
+		assertFileIdentical("testFixedBinaryEncoding: files differ", "./src/test/resources/javafixedbinary.ref", "./javafixedbinary.data");
 	}
 
 	// Reads a file and decodes with FixedBinary
 	@Test
-	public void testFixedBInaryDecoding() throws Exception {
-		FileInputStream fis = new FileInputStream("javafixedbinary.data");
+	public void testFixedBinaryDecoding() throws Exception {
+		FileInputStream fis = new FileInputStream("./src/test/resources/javafixedbinary.ref");
 		TimeDecoder timeDecoder = new BinaryTimeDecoder();
 		FineTimeDecoder fineTimeDecoder = new BinaryFineTimeDecoder();
 		DurationDecoder durationDecoder = new JavaDurationDecoder();
@@ -123,22 +153,24 @@ public class Test1 {
 
 	// Encodes with VarintBinary and writes in a file
 	@Test
-	public void testVarintBInaryEncoding() throws Exception {
+	public void testVarintBinaryEncoding() throws Exception {
 		FileOutputStream fos = new FileOutputStream("javavarintbinary.data");
 		TimeEncoder timeEncoder = new BinaryTimeEncoder();
 		FineTimeEncoder fineTimeEncoder = new BinaryFineTimeEncoder();
 		JavaDurationEncoder durationEncoder = new JavaDurationEncoder();
-		BinaryEncoder encoder = new BinaryEncoder(fos, false,  timeEncoder, fineTimeEncoder, durationEncoder);
+		BinaryEncoder encoder = new BinaryEncoder(fos, false, timeEncoder, fineTimeEncoder, durationEncoder);
 		encoder.setVarintSupported(true);
 		testEncoding(encoder);
 		encoder.flush();
 		fos.close();
+		// Compare with reference file
+		assertFileIdentical("testVarintBinaryEncoding: files differ", "./src/test/resources/javavarintbinary.ref", "./javavarintbinary.data");
 	}
 
 	// Reads a file and decodes with VarintBinary
 	@Test
-	public void testVarintBInaryDecoding() throws Exception {
-		FileInputStream fis = new FileInputStream("javavarintbinary.data");
+	public void testVarintBinaryDecoding() throws Exception {
+		FileInputStream fis = new FileInputStream("./src/test/resources/javavarintbinary.ref");
 		TimeDecoder timeDecoder = new BinaryTimeDecoder();
 		FineTimeDecoder fineTimeDecoder = new BinaryFineTimeDecoder();
 		DurationDecoder durationDecoder = new JavaDurationDecoder();
@@ -152,28 +184,32 @@ public class Test1 {
 
 	// Encodes with SplitBinary and writes in a file
 	@Test
-	public void testSplitBInaryEncoding() throws Exception {
+	public void testSplitBinaryEncoding() throws Exception {
 		FileOutputStream fos = new FileOutputStream("javasplitbinary.data");
 		TimeEncoder timeEncoder = new BinaryTimeEncoder();
 		FineTimeEncoder fineTimeEncoder = new BinaryFineTimeEncoder();
 		JavaDurationEncoder durationEncoder = new JavaDurationEncoder();
-		SplitBinaryEncoder encoder = new SplitBinaryEncoder(fos, false,  timeEncoder, fineTimeEncoder, durationEncoder);
+		SplitBinaryEncoder encoder = new SplitBinaryEncoder(fos, false, timeEncoder, fineTimeEncoder, durationEncoder);
 		testEncoding(encoder);
 		encoder.flush();
 		encoder.close();
 		fos.close();
+		// Compare with reference file
+		assertFileIdentical("testSplitBinaryEncoding: files differ", "./src/test/resources/javasplitbinary.ref", "./javasplitbinary.data");
 	}
 
 	// Reads a file and decodes with SplitBinary
 	@Test
-	public void testSplitBInaryDecoding() throws Exception {
-		FileInputStream fis = new FileInputStream("javasplitbinary.data");
+	public void testSplitBinaryDecoding() throws Exception {
+		FileInputStream fis = new FileInputStream("./src/test/resources/javasplitbinary.ref");
 		TimeDecoder timeDecoder = new BinaryTimeDecoder();
 		FineTimeDecoder fineTimeDecoder = new BinaryFineTimeDecoder();
 		DurationDecoder durationDecoder = new JavaDurationDecoder();
-		fr.cnes.encoding.splitbinary.InputStreamDecoder isdecoder = new fr.cnes.encoding.splitbinary.InputStreamDecoder(fis);
+		fr.cnes.encoding.splitbinary.InputStreamDecoder isdecoder = new fr.cnes.encoding.splitbinary.InputStreamDecoder(
+				fis);
 		isdecoder.setVarintSupported(true);
-		SplitBinaryDecoder decoder = new SplitBinaryDecoder(isdecoder, false, timeDecoder, fineTimeDecoder, durationDecoder);
+		SplitBinaryDecoder decoder = new SplitBinaryDecoder(isdecoder, false, timeDecoder, fineTimeDecoder,
+				durationDecoder);
 		testDecoding(decoder);
 		decoder.close();
 		fis.close();
@@ -183,8 +219,10 @@ public class Test1 {
 		encoder.encodeBoolean(BOOL1);
 		encoder.encodeUOctet(UOCTET1);
 		encoder.encodeUOctet(UOCTET2);
-		encoder.encodeOctet(OCTET1);;
-		encoder.encodeOctet(OCTET2);;
+		encoder.encodeOctet(OCTET1);
+		;
+		encoder.encodeOctet(OCTET2);
+		;
 		encoder.encodeOctet(OCTET3);
 		encoder.encodeBoolean(BOOL2);
 		encoder.encodeUShort(USHORT1);
@@ -283,4 +321,99 @@ public class Test1 {
 		Assert.assertEquals("BOOL1", BOOL11, decoder.decodeBoolean());
 	}
 
+	static boolean isGzip(File file) {
+		String name = file.getName();
+		int idx = name.lastIndexOf('.');
+		if (idx == -1)
+			return false;
+		return (name.substring(idx).equals(".gz"));
+	}
+
+	/**
+	 * Checks that two files are identical, ignoring address mismatch.
+	 *
+	 * @param file1
+	 *            first file
+	 * @param file2
+	 *            second file
+	 * @return <code>true</code> if files are identical
+	 */
+	public static boolean check(File file1, File file2) {
+		InputStream f1 = null;
+		InputStream f2 = null;
+
+		try {
+			if (isGzip(file1))
+				f1 = new BufferedInputStream(new GZIPInputStream(new FileInputStream(file1)));
+			else
+				f1 = new BufferedInputStream(new FileInputStream(file1));
+			if (isGzip(file2))
+				f2 = new BufferedInputStream(new GZIPInputStream(new FileInputStream(file2)));
+			else
+				f2 = new BufferedInputStream(new FileInputStream(file2));
+
+			while (true) {
+				int c = f1.read();
+				int c2 = f2.read();
+				if (c2 != c) {
+					// checks for a \r\n \n equivalence
+					if ((c == '\r') && (c2 == '\n')) {
+						c = f1.read();
+						if (c == c2)
+							continue;
+					} else if ((c2 == '\r') && (c == '\n')) {
+						c2 = f2.read();
+						if (c == c2)
+							continue;
+					}
+					return false;
+				}
+				if (c == -1)
+					break;
+			}
+			return true;
+		} catch (IOException exc) {
+			return false;
+		} finally {
+			try {
+				f1.close();
+			} catch (Exception e2) {
+			}
+			try {
+				f2.close();
+			} catch (Exception e2) {
+			}
+		}
+	}
+
+	static public void assertFileIdentical(String message, String expected, String actual) {
+		boolean ok = true;
+		File file1 = null;
+		File file2 = null;
+
+		String formatted = "";
+		if (message != null)
+			formatted = message + ", ";
+		try {
+			file1 = new File(expected);
+			if (!file1.canRead())
+				throw new IOException();
+			expected = file1.getCanonicalPath();
+		} catch (IOException exc) {
+			Assert.assertTrue(formatted + "cannot access file <" + expected + ">", false);
+			ok = false;
+		}
+		try {
+			file2 = new File(actual);
+			if (!file2.canRead())
+				throw new IOException();
+			actual = file2.getCanonicalPath();
+		} catch (IOException exc) {
+			Assert.assertTrue(formatted + "cannot access file <" + actual + ">", false);
+			ok = false;
+		}
+		if (!ok) return;
+
+		Assert.assertTrue(formatted + "files <" + expected + "> and <" + actual + "> differs", check(file1, file2));
+	}
 }
