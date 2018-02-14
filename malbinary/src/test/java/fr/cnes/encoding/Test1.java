@@ -39,11 +39,13 @@ import fr.cnes.encoding.splitbinary.SplitBinaryEncoder;
 import junit.framework.Assert;
 
 public class Test1 {
+	final static Boolean BOOL1 = new Boolean(false);
 	final static UOctet UOCTET1 = new UOctet((short) 0);
 	final static UOctet UOCTET2 = new UOctet((short) 255);
 	final static Byte OCTET1 = new Byte((byte) -128);
 	final static Byte OCTET2 = new Byte((byte) 0);
 	final static Byte OCTET3 = new Byte((byte) 127);
+	final static Boolean BOOL2 = new Boolean(true);
 	final static UShort USHORT1 = new UShort(0);
 	final static UShort USHORT2 = new UShort(256);
 	final static UShort USHORT3 = new UShort(65535);
@@ -52,6 +54,7 @@ public class Test1 {
 	final static Short SHORT3 = new Short((short) 0);
 	final static Short SHORT4 = new Short((short) 256);
 	final static Short SHORT5 = new Short((short) 32767);
+	final static Boolean BOOL3 = new Boolean(false);
 	final static UInteger UINT1 = new UInteger(0);
 	final static UInteger UINT2 = new UInteger(256);
 	final static UInteger UINT3 = new UInteger(65536);
@@ -63,23 +66,31 @@ public class Test1 {
 	final static Integer INT5 = new Integer(256);
 	final static Integer INT6 = new Integer(32767);
 	final static Integer INT7 = new Integer(2147483647);
+	final static Boolean BOOL4 = new Boolean(false);
 	final static ULong ULONG1 = new ULong(new BigInteger("0"));
 	final static ULong ULONG2 = new ULong(new BigInteger("65536"));
 	final static ULong ULONG3 = new ULong(new BigInteger("4294967295"));
 	final static Long LONG1 = new Long(-2147483648);
 	final static Long LONG2 = new Long(0);
 	final static Long LONG3 = new Long(2147483647);
+	final static Boolean BOOL5 = new Boolean(false);
 	final static Float FLOAT1 = (float) 1.25E6;
 	final static Float FLOAT2 = (float) -5.8E-2;
+	final static Boolean BOOL6 = new Boolean(false);
 	final static Double DOUBLE1 = (double) 1.25E6;
 	final static Double DOUBLE2 = (double) -5.8E-2;
-	final static byte[] b = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	final static Boolean BOOL7 = new Boolean(false);
+	final static byte[] b = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 	final static Blob BLOB1 = new Blob(b);
+	final static Boolean BOOL8 = new Boolean(false);
 	final static String STRING1 = "Hello world";
-	// TIME1     Time     = Time(time.Unix(int64(1234567), int64(500)))
+	final static Boolean BOOL9 = new Boolean(true);
+	// TIME1 Time = Time(time.Unix(int64(1234567), int64(500)))
 	final static Time TIME1 = new Time(1234567000);
+	final static Boolean BOOL10 = new Boolean(true);
 	// FINETIME1 FineTime = FineTime(time.Unix(int64(1234567), int64(500)))
 	final static FineTime FINETIME1 = new FineTime(1234567000000500L);
+	final static Boolean BOOL11 = new Boolean(false);
 
 	// Encodes with FixedBinary and writes in a file
 	@Test
@@ -169,11 +180,13 @@ public class Test1 {
 	}
 
 	void testEncoding(MALEncoder encoder) throws MALException {
+		encoder.encodeBoolean(BOOL1);
 		encoder.encodeUOctet(UOCTET1);
 		encoder.encodeUOctet(UOCTET2);
 		encoder.encodeOctet(OCTET1);;
 		encoder.encodeOctet(OCTET2);;
 		encoder.encodeOctet(OCTET3);
+		encoder.encodeBoolean(BOOL2);
 		encoder.encodeUShort(USHORT1);
 		encoder.encodeUShort(USHORT2);
 		encoder.encodeUShort(USHORT3);
@@ -182,6 +195,7 @@ public class Test1 {
 		encoder.encodeShort(SHORT3);
 		encoder.encodeShort(SHORT4);
 		encoder.encodeShort(SHORT5);
+		encoder.encodeBoolean(BOOL3);
 		encoder.encodeUInteger(UINT1);
 		encoder.encodeUInteger(UINT2);
 		encoder.encodeUInteger(UINT3);
@@ -193,28 +207,38 @@ public class Test1 {
 		encoder.encodeInteger(INT5);
 		encoder.encodeInteger(INT6);
 		encoder.encodeInteger(INT7);
+		encoder.encodeBoolean(BOOL4);
 		encoder.encodeULong(ULONG1);
 		encoder.encodeULong(ULONG2);
 		encoder.encodeULong(ULONG3);
 		encoder.encodeLong(LONG1);
 		encoder.encodeLong(LONG2);
 		encoder.encodeLong(LONG3);
+		encoder.encodeBoolean(BOOL5);
 		encoder.encodeFloat(FLOAT1);
 		encoder.encodeFloat(FLOAT2);
+		encoder.encodeBoolean(BOOL6);
 		encoder.encodeDouble(DOUBLE1);
 		encoder.encodeDouble(DOUBLE2);
+		encoder.encodeBoolean(BOOL7);
 		encoder.encodeBlob(BLOB1);
+		encoder.encodeBoolean(BOOL8);
 		encoder.encodeString(STRING1);
+		encoder.encodeBoolean(BOOL9);
 		encoder.encodeTime(TIME1);
+		encoder.encodeBoolean(BOOL10);
 		encoder.encodeFineTime(FINETIME1);
+		encoder.encodeBoolean(BOOL11);
 	}
 
 	void testDecoding(MALDecoder decoder) throws MALException {
+		Assert.assertEquals("BOOL1", BOOL1, decoder.decodeBoolean());
 		Assert.assertEquals("UOCTET1", UOCTET1, decoder.decodeUOctet());
 		Assert.assertEquals("UOCTET", UOCTET2, decoder.decodeUOctet());
 		Assert.assertEquals("OCTET1", OCTET1, decoder.decodeOctet());
 		Assert.assertEquals("OCTET2", OCTET2, decoder.decodeOctet());
 		Assert.assertEquals("OCTET3", OCTET3, decoder.decodeOctet());
+		Assert.assertEquals("BOOL1", BOOL2, decoder.decodeBoolean());
 		Assert.assertEquals("USHORT1", USHORT1, decoder.decodeUShort());
 		Assert.assertEquals("USHORT2", USHORT2, decoder.decodeUShort());
 		Assert.assertEquals("USHORT3", USHORT3, decoder.decodeUShort());
@@ -223,6 +247,7 @@ public class Test1 {
 		Assert.assertEquals("SHORT3", SHORT3, decoder.decodeShort());
 		Assert.assertEquals("SHORT4", SHORT4, decoder.decodeShort());
 		Assert.assertEquals("SHORT5", SHORT5, decoder.decodeShort());
+		Assert.assertEquals("BOOL1", BOOL3, decoder.decodeBoolean());
 		Assert.assertEquals("UINT1", UINT1, decoder.decodeUInteger());
 		Assert.assertEquals("UINT2", UINT2, decoder.decodeUInteger());
 		Assert.assertEquals("UINT3", UINT3, decoder.decodeUInteger());
@@ -234,20 +259,28 @@ public class Test1 {
 		Assert.assertEquals("INT5", INT5, decoder.decodeInteger());
 		Assert.assertEquals("INT6", INT6, decoder.decodeInteger());
 		Assert.assertEquals("INT7", INT7, decoder.decodeInteger());
+		Assert.assertEquals("BOOL1", BOOL4, decoder.decodeBoolean());
 		Assert.assertEquals("ULONG1", ULONG1, decoder.decodeULong());
 		Assert.assertEquals("ULONG2", ULONG2, decoder.decodeULong());
 		Assert.assertEquals("ULONG3", ULONG3, decoder.decodeULong());
 		Assert.assertEquals("LONG1", LONG1, decoder.decodeLong());
 		Assert.assertEquals("LONG2", LONG2, decoder.decodeLong());
 		Assert.assertEquals("LONG3", LONG3, decoder.decodeLong());
+		Assert.assertEquals("BOOL1", BOOL5, decoder.decodeBoolean());
 		Assert.assertEquals("FLOAT1", FLOAT1, decoder.decodeFloat());
 		Assert.assertEquals("FLOAT2", FLOAT2, decoder.decodeFloat());
+		Assert.assertEquals("BOOL1", BOOL6, decoder.decodeBoolean());
 		Assert.assertEquals("DOUBLE1", DOUBLE1, decoder.decodeDouble());
 		Assert.assertEquals("DOUBLE2", DOUBLE2, decoder.decodeDouble());
+		Assert.assertEquals("BOOL1", BOOL7, decoder.decodeBoolean());
 		Assert.assertEquals("BLOB1", BLOB1, decoder.decodeBlob());
+		Assert.assertEquals("BOOL1", BOOL8, decoder.decodeBoolean());
 		Assert.assertEquals("STRING1", STRING1, decoder.decodeString());
+		Assert.assertEquals("BOOL1", BOOL9, decoder.decodeBoolean());
 		Assert.assertEquals("TIME1", TIME1, decoder.decodeTime());
+		Assert.assertEquals("BOOL1", BOOL10, decoder.decodeBoolean());
 		Assert.assertEquals("FINETIME1", FINETIME1, decoder.decodeFineTime());
+		Assert.assertEquals("BOOL1", BOOL11, decoder.decodeBoolean());
 	}
 
 }
