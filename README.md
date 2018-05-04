@@ -24,7 +24,7 @@ All contributions are welcome.
 
 A MAL/Java description and user's guide is available in the doc directory.
 
-### MAL/GO Description
+### MAL/Java Description
 
 This Java API implementation mainly includes 5 packages:
 
