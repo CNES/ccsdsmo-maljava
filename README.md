@@ -40,6 +40,19 @@ Implementations of other transports are provided in 3 additional packages:
   - **maljms** package includes a MAL transport implementation over the JMS 1.1 API.
   - **malamqp** package includes a MAL transport implementation over the AMQP v0.9.1 API.
 
-### Practical Tips for Using the MAL Java API
+## Project building
+
+All projects are simply built using Maven:
+
+  - cd malapi ; mvn clean install ; cd -
+  - cd malimpl ; mvn clean install ; cd -
+  - cd malgen ; mvn clean install ; cd -
+  - cd malbinary ; mvn clean install ; cd -
+  - cd maltcp ; mvn clean install ; cd -
+  - cd malspp ; mvn clean install ; cd -
+  - cd maljms ; mvn clean install ; cd -
+  - cd malamqp ; mvn clean install ; cd -
+
+## Practical Tips for Using the MAL Java API
 
 This [tutorial](https://github.com/esa/CCSDS_MO/wiki/Practical-Tips-for-Using-the-MAL-Java-API) contains an introduction to the use of MAL Java API.
