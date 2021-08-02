@@ -92,7 +92,14 @@
 	</properties>
 
 	<dependencies>
-		<dependency>
+<!-- Not exported by ESA
+ 		<dependency>
+			<groupId>int.esa.ccsds.mo</groupId>
+		  <artifactId>TESTBED_UTIL_SPP</artifactId>
+		  <version>1.0</version>
+		</dependency>
+ -->
+ 		<dependency>
 			<groupId>fr.cnes.ccsds.mo</groupId>
 			<artifactId>mal-api</artifactId>
 			<version>3.2.2</version>
