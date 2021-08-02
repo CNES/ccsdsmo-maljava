@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 - 2018 CNES
+ * Copyright (c) 2017 - 2021 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -430,7 +430,7 @@ public class BinaryDecoder implements MALDecoder {
 
   public MALListDecoder createListDecoder(List list) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "JORAMDecoder.createListDecoder(" +
+      logger.log(BasicLevel.DEBUG, "BinaryDecoder.createListDecoder(" +
           list + ')');
     try {
       int size = decoder.readUnsignedInt();
