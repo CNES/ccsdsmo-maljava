@@ -110,7 +110,9 @@
 		<dependency>
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
-			<version>1.5.5</version>
+			<!-- Should use version >= 4.8.0 to fix RabbitMQ vulnerability
+			     Version > 1.6.0 needs code refactoring to work -->
+			<version>1.6.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.ow2.joram</groupId>
