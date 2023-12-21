@@ -29,7 +29,7 @@ import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALProgressOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.consumer.MALInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
@@ -94,7 +94,14 @@ public class ProgressInteraction extends SyncInteraction {
           op + ',' + header + ',' + body + ')');
     if (header.getInteractionType().getOrdinal() == InteractionType._PROGRESS_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      checkStageTransition(getStage(), nextStage);
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       switch (nextStage.getValue()) {
       case MALProgressOperation._PROGRESS_ACK_STAGE:
@@ -106,7 +113,7 @@ public class ProgressInteraction extends SyncInteraction {
           Integer nbMsgLost = msgSequenceCount.intValue() - updateSequenceCount;
           if (nbMsgLost > 0) {
             listener.progressUpdateErrorReceived(header, 
-                new CNESMALErrorBody(new MALStandardError(MALHelper.DELIVERY_FAILED_ERROR_NUMBER, 
+                new CNESMALErrorBody(new MOErrorException(MALHelper.DELIVERY_FAILED_ERROR_NUMBER, 
                     new Union(nbMsgLost))), qosProperties);
           }
           updateSequenceCount = msgSequenceCount.intValue() + 1;
@@ -130,7 +137,18 @@ public class ProgressInteraction extends SyncInteraction {
           operation + ',' + header + ',' + body + ')');
     if (header.getInteractionType().getOrdinal() == InteractionType._PROGRESS_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      checkStageTransition(getStage(), nextStage);
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
       setStage(nextStage);
       switch (nextStage.getValue()) {
       case MALProgressOperation._PROGRESS_ACK_STAGE:

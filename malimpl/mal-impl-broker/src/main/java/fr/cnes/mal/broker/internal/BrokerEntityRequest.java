@@ -25,9 +25,10 @@ package fr.cnes.mal.broker.internal;
 
 import java.util.Arrays;
 
-import org.ccsds.moims.mo.mal.structures.EntityKey;
+import org.ccsds.moims.mo.mal.structures.SubscriptionFilter;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 
+// TODO SL: change the name? Entity -> Filter
 public class BrokerEntityRequest {
   
   private IdentifierList subDomain;
@@ -38,19 +39,19 @@ public class BrokerEntityRequest {
   
   private Boolean allOperations;
   
-  private EntityKey key;
+  private SubscriptionFilter filter;
   
   private Boolean onlyOnChange;
 
   public BrokerEntityRequest(IdentifierList subDomain, Boolean allAreas,
-      Boolean allServices, Boolean allOperations, EntityKey key,
+      Boolean allServices, Boolean allOperations, SubscriptionFilter filter,
       Boolean onlyOnChange) {
     super();
     this.subDomain = subDomain;
     this.allAreas = allAreas;
     this.allServices = allServices;
     this.allOperations = allOperations;
-    this.key = key;
+    this.filter = filter;
     this.onlyOnChange = onlyOnChange;
   }
 
@@ -86,12 +87,12 @@ public class BrokerEntityRequest {
     this.allOperations = allOperations;
   }
 
-  public EntityKey getKey() {
-    return key;
+  public SubscriptionFilter getKey() {
+    return filter;
   }
 
-  public void setKey(EntityKey key) {
-    this.key = key;
+  public void setKey(SubscriptionFilter filter) {
+    this.filter = filter;
   }
 
   public Boolean isOnlyOnChange() {
@@ -106,7 +107,7 @@ public class BrokerEntityRequest {
     return "BrokerEntityRequest [subDomain="
         + (subDomain != null ? Arrays.asList(subDomain) : null) + ", allAreas="
         + allAreas + ", allServices=" + allServices + ", allOperations="
-        + allOperations + ", key=" + (key != null ? Arrays.asList(key) : null)
+        + allOperations + ", filter=" + filter
         + ", onlyOnChange=" + onlyOnChange + "]";
   }
 }

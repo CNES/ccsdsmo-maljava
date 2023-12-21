@@ -30,6 +30,7 @@ import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.broker.MALBroker;
 import org.ccsds.moims.mo.mal.broker.MALBrokerBinding;
 import org.ccsds.moims.mo.mal.broker.MALBrokerHandler;
+import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.URI;
 import org.objectweb.util.monolog.api.Logger;
 
@@ -67,7 +68,7 @@ public class CNESMALBroker implements MALBroker {
     handler.malInitialize(brokerBinding);
   }
   
-  void removeBinding(URI uri) throws MALException {
+  void removeBinding(Identifier uri) throws MALException {
     for (int i = 0; i < brokerBindings.size(); i++) {
       CNESMALBrokerBinding brokerBinding = (CNESMALBrokerBinding) brokerBindings.elementAt(i);
       if (brokerBinding.getURI().equals(uri)) {
@@ -93,11 +94,11 @@ public class CNESMALBroker implements MALBroker {
     brokerManager.closeBroker(this);
   }
 
-  public URI[] getURIs() {
-    URI[] res = new URI[brokerBindings.size()];
+  public Identifier[] getDestinationIds() {
+    Identifier[] res = new Identifier[brokerBindings.size()];
     for (int i = 0; i < brokerBindings.size(); i++) {
       CNESMALBrokerBinding brokerBinding = (CNESMALBrokerBinding) brokerBindings.elementAt(i);
-      res[i] = brokerBinding.getURI();
+      res[i] = brokerBinding.getDestinationId();
     }
     return res;
   }

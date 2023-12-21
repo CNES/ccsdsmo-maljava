@@ -26,11 +26,14 @@ package fr.cnes.mal.consumer;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALSubmitOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.consumer.MALInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -68,7 +71,14 @@ public class AsyncSubmitInteraction extends Interaction {
     if (header.getInteractionType().getOrdinal() == 
       InteractionType._SUBMIT_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      SubmitInteraction.checkStageTransition(getStage(), nextStage);
+      try {
+        SubmitInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       setStatus(DONE);
       listener.submitAckReceived(header, qosProperties);
@@ -88,7 +98,18 @@ public class AsyncSubmitInteraction extends Interaction {
           operation + ',' + header + ',' + body + ',' + qosProperties + ')');
     if (header.getInteractionType().getOrdinal() == InteractionType._SUBMIT_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      SubmitInteraction.checkStageTransition(getStage(), nextStage);
+      try {
+        SubmitInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
       setStage(nextStage);
       setStatus(FAILED);
       if (listener != null) {

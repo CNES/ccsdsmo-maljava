@@ -26,11 +26,14 @@ package fr.cnes.mal.provider;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALPublishInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -60,7 +63,14 @@ public class AsyncPublishDeregisterInteraction extends Interaction {
     if (header.getInteractionType().getOrdinal() == 
       InteractionType._PUBSUB_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      PublishDeregisterInteraction.checkStageTransition(getStage(), nextStage);
+      try {
+        PublishDeregisterInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       setStatus(DONE);
       listener.publishDeregisterAckReceived(header, qosProperties);

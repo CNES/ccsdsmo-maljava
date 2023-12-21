@@ -35,13 +35,4 @@ public interface PublisherContextMBean {
   
   String getOperationName();
   
-  String getNetworkZone();
-  
-  String getSessionType();
-
-  String getSessionName();
-  
-  String getQoSLevelAsString();
-
-  long getPriorityAsLong();
 }

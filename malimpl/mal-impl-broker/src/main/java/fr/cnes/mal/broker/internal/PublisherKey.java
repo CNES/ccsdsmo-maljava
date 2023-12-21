@@ -26,15 +26,16 @@ package fr.cnes.mal.broker.internal;
 import java.io.IOException;
 import java.io.Serializable;
 
+import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.URI;
 
 class PublisherKey implements Serializable {
-  private URI uri;
+  private Identifier uri;
   private DomainKey domainKey;
   
   private void readObject(java.io.ObjectInputStream is)
       throws IOException, ClassNotFoundException {
-    uri = new URI(is.readUTF());
+    uri = new Identifier(is.readUTF());
     domainKey = (DomainKey) is.readObject();
   }
   
@@ -44,17 +45,17 @@ class PublisherKey implements Serializable {
     os.writeObject(domainKey);
   }
   
-  public PublisherKey(URI uri, DomainKey domainKey) {
+  public PublisherKey(Identifier uri, DomainKey domainKey) {
     super();
     this.uri = uri;
     this.domainKey = domainKey;
   }
 
-  public URI getUri() {
+  public Identifier getUri() {
     return uri;
   }
 
-  public void setUri(URI uri) {
+  public void setUri(Identifier uri) {
     this.uri = uri;
   }
 

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * MIT License
  * 
- * Copyright (c) 2017 CNES
+ * Copyright (c) 2017-2023 CNES
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,15 @@ import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
+import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.Time;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
+import org.ccsds.moims.mo.mal.structures.UShort;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
 
@@ -49,23 +52,19 @@ public interface MessageSender {
       throws MALInteractionException, MALException;
   
   public MALMessage createMessage(
-      Blob authenticationId, URI uRITo,
-      Time timestamp, QoSLevel qoSlevel,
-      UInteger priority, IdentifierList domain,
-      Identifier networkZone, SessionType session, Identifier sessionName,
-      Long transactionId,
+      Blob authenticationId, Identifier uRITo,
+      Time timestamp, Long transactionId,
       Boolean isErrorMessage,
       MALOperation op, UOctet interactionStage,
-      Map qosProperties, Object... body) throws MALException;
+      NamedValueList supplements, Map qosProperties,
+      Object... body) throws MALException;
   
   public MALMessage createMessage(
-      Blob authenticationId, URI uRITo,
-      Time timestamp, QoSLevel qoSlevel,
-      UInteger priority, IdentifierList domain,
-      Identifier networkZone, SessionType session, Identifier sessionName,
-      Long transactionId,
+      Blob authenticationId, Identifier uRITo,
+      Time timestamp, Long transactionId,
       Boolean isErrorMessage,
       MALOperation op, UOctet interactionStage,
-      Map qosProperties, MALEncodedBody encodedBody) throws MALException;
+      NamedValueList supplements, Map qosProperties,
+      MALEncodedBody encodedBody) throws MALException;
 
 }

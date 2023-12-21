@@ -32,6 +32,7 @@ import org.ccsds.moims.mo.mal.broker.MALBrokerBinding;
 import org.ccsds.moims.mo.mal.broker.MALBrokerHandler;
 import org.ccsds.moims.mo.mal.broker.MALBrokerManager;
 import org.ccsds.moims.mo.mal.structures.Blob;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.transport.MALEndpoint;
@@ -96,17 +97,19 @@ public class CNESMALBrokerManager extends BindingManager<CNESMALBrokerBinding>
   public synchronized MALBrokerBinding createBrokerBinding(MALBroker broker,
       String localName, String protocol, 
       Blob authenticationId, QoSLevel[] expectedQos,
-      UInteger priorityLevelNumber, Map qosProperties)
+      UInteger priorityLevelNumber, Map qosProperties,
+      NamedValueList supplements)
       throws MALException {
-    if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "CNESMALBrokerManager.createBrokerBinding(" +
-          broker + ',' + localName + ',' + protocol + ')');
     checkClosed();
     if (localName == null) throw new IllegalArgumentException("Null local name");
     if (protocol == null) throw new IllegalArgumentException("Null protocol");
     if (authenticationId == null) throw new IllegalArgumentException("Null authenticationId");
     if (expectedQos == null) throw new IllegalArgumentException("Null expectedQos");
     if (priorityLevelNumber == null) throw new IllegalArgumentException("Null priorityLevelNumber");
+    // Currently ignore the supplements for the provider, ping back the supplements from the consumer
+    // for the testbed, the broker must be created with an empty list
+    if (supplements == null) supplements = new NamedValueList();
+    
     MALTransport transport = getMalContext().getTransport(protocol);
     if (broker == null) {
       return transport.createBroker(localName, authenticationId, expectedQos, 
@@ -138,9 +141,9 @@ public class CNESMALBrokerManager extends BindingManager<CNESMALBrokerBinding>
       UInteger priorityLevelNumber, 
       Map defaultQoSProperties) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "CNESMALProviderManager.createProvider(" +
+      logger.log(BasicLevel.DEBUG, "CNESMALBrokerManager.createBrokerBinding(" +
           localName + ',' + defaultQoSProperties + ')');
-    MALEndpoint ep = transport.createEndpoint(localName, defaultQoSProperties);
+    MALEndpoint ep = transport.createEndpoint(localName, defaultQoSProperties, new NamedValueList());
     CNESMALBrokerBinding brokerBinding = doCreateBrokerBinding(
         broker, ep, authenticationId, expectedQos, priorityLevelNumber, 
         defaultQoSProperties, null);
@@ -148,11 +151,13 @@ public class CNESMALBrokerManager extends BindingManager<CNESMALBrokerBinding>
     ep.startMessageDelivery();
     return brokerBinding;
   }
-  
+
   public synchronized MALBrokerBinding createBrokerBinding(MALBroker broker,
       MALEndpoint endPoint, Blob authenticationId, QoSLevel[] expectedQos,
-      UInteger priorityLevelNumber, Map qosProperties) throws MALException {
+      UInteger priorityLevelNumber, Map qosProperties,
+      NamedValueList supplements) throws MALException {
     checkClosed();
+    if (supplements == null) supplements = new NamedValueList();
     if (broker == null) {
       MALTransport transport = getMalContext().getTransport(endPoint.getURI());
       return transport.createBroker(endPoint, authenticationId, expectedQos, 
@@ -211,5 +216,5 @@ public class CNESMALBrokerManager extends BindingManager<CNESMALBrokerBinding>
   protected void finalizeManager() throws MALException {
     getMalContext().closeBrokerManager(this);
   }
-  
+
 }

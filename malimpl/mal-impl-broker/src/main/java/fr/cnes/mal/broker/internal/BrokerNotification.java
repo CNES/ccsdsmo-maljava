@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.UInteger;
@@ -38,23 +39,13 @@ import org.ccsds.moims.mo.mal.structures.UShort;
 
 public class BrokerNotification {
   
-  private URI subscriberUri;
+  private Identifier subscriberUri;
   
   private Long transactionId;
   
-  private IdentifierList domain;
-  
-  private Identifier networkZone;
-  
-  private SessionType sessionType;
-  
-  private Identifier sessionName;
-  
-  private QoSLevel qosLevel;
+  private NamedValueList supplements;
   
   private Map qosProperties;
-  
-  private UInteger priority;
   
   private UShort area;
   
@@ -66,20 +57,14 @@ public class BrokerNotification {
   
   private List<BrokerSubscriptionUpdate> subscriptionUpdates;
   
-  public BrokerNotification(URI subscriberUri, Long transactionId,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType, Identifier sessionName,
-      QoSLevel qosLevel, Map qosProperties, UInteger priority, UShort area,
+  public BrokerNotification(Identifier subscriberUri, Long transactionId,
+      NamedValueList supplements, Map qosProperties, UShort area,
       UShort service, UShort operation, UOctet version) {
     super();
     this.subscriberUri = subscriberUri;
     this.transactionId = transactionId;
-    this.domain = domain;
-    this.networkZone = networkZone;
-    this.sessionType = sessionType;
-    this.sessionName = sessionName;
-    this.qosLevel = qosLevel;
+    this.supplements = supplements;
     this.qosProperties = qosProperties;
-    this.priority = priority;
     this.area = area;
     this.service = service;
     this.operation = operation;
@@ -87,7 +72,7 @@ public class BrokerNotification {
     subscriptionUpdates = new ArrayList<BrokerSubscriptionUpdate>();
   }
   
-  public URI getSubscriberUri() {
+  public Identifier getSubscriberUri() {
     return subscriberUri;
   }
   
@@ -95,28 +80,8 @@ public class BrokerNotification {
     return transactionId;
   }
   
-  public IdentifierList getDomain() {
-    return domain;
-  }
-  
-  public Identifier getNetworkZone() {
-    return networkZone;
-  }
-  
-  public SessionType getSessionType() {
-    return sessionType;
-  }
-  
-  public Identifier getSessionName() {
-    return sessionName;
-  }
-
-  public UInteger getPriority() {
-    return priority;
-  }
-  
-  public QoSLevel getQosLevel() {
-    return qosLevel;
+  public NamedValueList getSupplements() {
+    return supplements;
   }
   
   public Map getQosProperties() {
@@ -160,11 +125,9 @@ public class BrokerNotification {
   @Override
   public String toString() {
     return "BrokerNotification [subscriberUri=" + subscriberUri
-        + ", transactionId=" + transactionId + ", domain="
-        + domain + ", networkZone=" + networkZone
-        + ", sessionType=" + sessionType + ", sessionName=" + sessionName
-        + ", qosLevel=" + qosLevel + ", qosProperties=" + qosProperties
-        + ", priority=" + priority + ", area=" + area + ", service=" + service
+        + ", transactionId=" + transactionId
+        + ", supplements=" + supplements + ", qosProperties=" + qosProperties
+        + ", area=" + area + ", service=" + service
         + ", operation=" + operation + ", version=" + version
         + ", subscriptionUpdates=" + subscriptionUpdates + "]";
   }

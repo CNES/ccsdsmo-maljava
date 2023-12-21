@@ -28,10 +28,11 @@ import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALRequestOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALRequest;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -45,31 +46,32 @@ public class CNESMALRequest extends CNESMALInteraction implements MALRequest {
       MessageSender messageSender, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
-    super(messageHeader, messageSender, request, operation, authenticationId);
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
+    super(messageHeader, messageSender, request, operation, authenticationId, providerSupplements);
     setStage(MALRequestOperation.REQUEST_STAGE);
   }
 
   public MALMessage sendResponse(Object... body) throws MALInteractionException, MALException {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.REQUEST, 
-        MALRequestOperation.REQUEST_RESPONSE_STAGE, Boolean.FALSE, body);
+        MALRequestOperation.REQUEST_RESPONSE_STAGE, Boolean.FALSE, providerSupplements, body);
     return msg;
   }
   
   public MALMessage sendResponse(MALEncodedBody encodedBody) throws MALInteractionException, MALException {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.REQUEST, 
-        MALRequestOperation.REQUEST_RESPONSE_STAGE, Boolean.FALSE, encodedBody);
+        MALRequestOperation.REQUEST_RESPONSE_STAGE, Boolean.FALSE, providerSupplements, encodedBody);
     return msg;
   }
 
-  public MALMessage sendError(MALStandardError error) throws MALInteractionException, MALException {
+  public MALMessage sendError(MOErrorException error) throws MALInteractionException, MALException {
     if (error == null) throw new IllegalArgumentException("Null error");
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.REQUEST, 
         MALRequestOperation.REQUEST_RESPONSE_STAGE, 
-        Boolean.TRUE, error.getErrorNumber(), error.getExtraInformation());
+        Boolean.TRUE, providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setFailed(true);
     return msg;
   }

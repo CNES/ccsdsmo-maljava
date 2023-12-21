@@ -32,23 +32,19 @@ import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
 import org.ccsds.moims.mo.mal.structures.UShort;
+import org.ccsds.moims.mo.mal.structures.UpdateHeader;
 import org.ccsds.moims.mo.mal.structures.UpdateHeaderList;
 
+// TODO SL move to v2 single update
+// je traite uniquement les Lists[0]
+// TODO SL move to v2 Identifier from
 public class BrokerPublication {
   
-  private URI uriFrom;
+  private Identifier uriFrom;
   
-  private IdentifierList domain;
+  private UpdateHeader updateHeader;
   
-  private Identifier networkZone;
-  
-  private SessionType sessionType;
-
-  private Identifier sessionName;
-  
-  private UpdateHeaderList updateHeaders;
-  
-  private List[] updateLists;
+  private Object[] updateObjects;
   
   private UShort area;
   
@@ -58,56 +54,34 @@ public class BrokerPublication {
   
   private UOctet version;
 
-  public BrokerPublication(URI uriFrom,
-      IdentifierList domain, Identifier networkZone,
-      SessionType sessionType, Identifier sessionName, 
-      UpdateHeaderList updateHeaders,
-      List[] updateLists, UShort area,
+  public BrokerPublication(Identifier uriFrom,
+      UpdateHeader updateHeader,
+      Object[] updateObjects, UShort area,
       UShort service, UShort operation, UOctet version) {
     super();
     this.uriFrom = uriFrom;
-    this.domain = domain;
-    this.networkZone = networkZone;
-    this.sessionType = sessionType;
-    this.sessionName = sessionName;
-    this.updateHeaders = updateHeaders;
-    this.updateLists = updateLists;
+    this.updateHeader = updateHeader;
+    this.updateObjects = updateObjects;
     this.area = area;
     this.service = service;
     this.operation = operation;
     this.version = version;
   }
 
-  public URI getUriFrom() {
+  public Identifier getUriFrom() {
     return uriFrom;
   }
 
-  public IdentifierList getDomain() {
-    return domain;
-  }
-  
-  public Identifier getNetworkZone() {
-    return networkZone;
-  }
-  
-  public SessionType getSessionType() {
-    return sessionType;
-  }
-  
-  public Identifier getSessionName() {
-    return sessionName;
-  }
-  
-  public UpdateHeaderList getUpdateHeaders() {
-    return updateHeaders;
+  public UpdateHeader getUpdateHeader() {
+    return updateHeader;
   }
 
-  public List[] getUpdateLists() {
-    return updateLists;
+  public Object[] getUpdateObjects() {
+    return updateObjects;
   }
   
   public int getUpdateListCount() {
-    return updateLists.length;
+    return 1;
   }
 
   public UShort getArea() {
@@ -128,10 +102,8 @@ public class BrokerPublication {
 
   @Override
   public String toString() {
-    return "BrokerPublication [uriFrom=" + uriFrom + ", domain=" + domain
-        + ", networkZone=" + networkZone + ", sessionType=" + sessionType
-        + ", sessionName=" + sessionName + ", updateHeaders=" + updateHeaders
-        + ", updateLists=" + Arrays.toString(updateLists) + ", area=" + area
+    return "BrokerPublication [uriFrom=" + uriFrom + ", updateHeader=" + updateHeader
+        + ", updateObjects=" + Arrays.toString(updateObjects) + ", area=" + area
         + ", service=" + service + ", operation=" + operation + ", version="
         + version + "]";
   }

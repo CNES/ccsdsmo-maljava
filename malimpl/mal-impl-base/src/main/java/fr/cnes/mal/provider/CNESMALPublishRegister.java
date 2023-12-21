@@ -28,9 +28,10 @@ import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
 import org.objectweb.util.monolog.api.BasicLevel;
@@ -48,8 +49,9 @@ public class CNESMALPublishRegister extends CNESMALInteraction {
       MessageSender messageSender, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
-    super(messageHeader, messageSender, request, operation, authenticationId);
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
+    super(messageHeader, messageSender, request, operation, authenticationId, providerSupplements);
     setStage(MALPubSubOperation.PUBLISH_REGISTER_STAGE);
   }
   
@@ -58,18 +60,18 @@ public class CNESMALPublishRegister extends CNESMALInteraction {
       logger.log(BasicLevel.DEBUG, "CNESMALPublishRegister.sendAcknowledgement()");
     checkAckStage();
     sendResult(InteractionType.PUBSUB, 
-        MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE, Boolean.FALSE);
+        MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE, Boolean.FALSE, providerSupplements);
     setStage(MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE);
   }
 
-  public void sendError(MALStandardError error) throws MALInteractionException, MALException {
+  public void sendError(MOErrorException error) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALPublishRegister.sendException(" + error + ')');
     if (error == null) throw new IllegalArgumentException("Null error");
     checkAckStage();
     sendResult(InteractionType.PUBSUB, 
         MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE, Boolean.TRUE,
-        error.getErrorNumber(), error.getExtraInformation());
+        providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setStage(MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE);
     setFailed(true);
   }

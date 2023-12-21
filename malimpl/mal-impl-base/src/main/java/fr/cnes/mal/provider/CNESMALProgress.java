@@ -28,10 +28,11 @@ import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALProgressOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALProgress;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
@@ -47,8 +48,9 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
       CNESMALProvider provider, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
-    super(messageHeader, provider, request, operation, authenticationId);
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
+    super(messageHeader, provider, request, operation, authenticationId, providerSupplements);
     setStage(MALProgressOperation.PROGRESS_STAGE);
     updateSequenceCount = 1;
   }
@@ -58,7 +60,7 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     setQoSProperty(CNESMALContext.SEQUENCE_COUNT, new Integer(updateSequenceCount++));
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_UPDATE_STAGE,
-        Boolean.FALSE, body);
+        Boolean.FALSE, providerSupplements, body);
     setStage(MALProgressOperation.PROGRESS_UPDATE_STAGE);
     return msg;
   }
@@ -68,7 +70,7 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     setQoSProperty(CNESMALContext.SEQUENCE_COUNT, new Integer(updateSequenceCount++));
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_UPDATE_STAGE,
-        Boolean.FALSE, encodedBody);
+        Boolean.FALSE, providerSupplements, encodedBody);
     setStage(MALProgressOperation.PROGRESS_UPDATE_STAGE);
     return msg;
   }
@@ -77,7 +79,7 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_ACK_STAGE,
-        Boolean.FALSE, body);
+        Boolean.FALSE, providerSupplements, body);
     setStage(MALProgressOperation.PROGRESS_ACK_STAGE);
     return msg;
   }
@@ -86,7 +88,7 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_ACK_STAGE,
-        Boolean.FALSE, encodedBody);
+        Boolean.FALSE, providerSupplements, encodedBody);
     setStage(MALProgressOperation.PROGRESS_ACK_STAGE);
     return msg;
   }
@@ -95,7 +97,7 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_RESPONSE_STAGE,
-        Boolean.FALSE, body);
+        Boolean.FALSE, providerSupplements, body);
     setStage(MALProgressOperation.PROGRESS_RESPONSE_STAGE);
     return msg;
   }
@@ -104,12 +106,12 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_RESPONSE_STAGE,
-        Boolean.FALSE, encodedBody);
+        Boolean.FALSE, providerSupplements, encodedBody);
     setStage(MALProgressOperation.PROGRESS_RESPONSE_STAGE);
     return msg;
   }
 
-  public MALMessage sendError(MALStandardError error) throws MALInteractionException, MALException {
+  public MALMessage sendError(MOErrorException error) throws MALInteractionException, MALException {
     checkFailed();
     UOctet nextStage;
     switch (getStage().getValue()) {
@@ -127,16 +129,16 @@ public class CNESMALProgress extends CNESMALInteraction implements MALProgress {
     }
     setStage(nextStage);
     MALMessage msg = sendResult(InteractionType.PROGRESS, nextStage, Boolean.TRUE,
-        error.getErrorNumber(), error.getExtraInformation());
+        providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setFailed(true);
     return msg;
   }
   
-  public MALMessage sendUpdateError(MALStandardError error) throws MALInteractionException, MALException {
+  public MALMessage sendUpdateError(MOErrorException error) throws MALInteractionException, MALException {
     checkUpdateErrorStage();
     MALMessage msg = sendResult(InteractionType.PROGRESS, 
         MALProgressOperation.PROGRESS_UPDATE_STAGE, Boolean.TRUE, 
-        error.getErrorNumber(), error.getExtraInformation());
+        providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setStage(MALProgressOperation.PROGRESS_UPDATE_STAGE);
     return msg;
   }

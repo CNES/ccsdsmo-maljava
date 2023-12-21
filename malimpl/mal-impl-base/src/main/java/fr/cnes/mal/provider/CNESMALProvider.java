@@ -33,17 +33,17 @@ import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
 import org.ccsds.moims.mo.mal.MALService;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALInteractionHandler;
 import org.ccsds.moims.mo.mal.provider.MALProvider;
 import org.ccsds.moims.mo.mal.provider.MALPublishInteractionListener;
 import org.ccsds.moims.mo.mal.provider.MALPublisher;
+import org.ccsds.moims.mo.mal.structures.AttributeTypeList;
 import org.ccsds.moims.mo.mal.structures.Blob;
-import org.ccsds.moims.mo.mal.structures.EntityKey;
-import org.ccsds.moims.mo.mal.structures.EntityKeyList;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.Subscription;
@@ -52,6 +52,7 @@ import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
 import org.ccsds.moims.mo.mal.structures.Union;
+import org.ccsds.moims.mo.mal.structures.UpdateHeader;
 import org.ccsds.moims.mo.mal.structures.UpdateHeaderList;
 import org.ccsds.moims.mo.mal.transport.MALDeregisterBody;
 import org.ccsds.moims.mo.mal.transport.MALEndpoint;
@@ -102,11 +103,13 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   
   private Boolean isPublisher;
   
-  private URI sharedBrokerUri;
+  private Identifier sharedBrokerUri;
   
   private Vector<CNESMALPublisher> publishers;
   
   private Map defaultQoSProperties;
+  
+  private NamedValueList supplements;
   
   private InteractionManager maps;
   
@@ -119,14 +122,16 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       MALInteractionHandler handler,
       Blob authenticationId,
       Map defaultQoSProperties,
+      NamedValueList supplements,
       Boolean isPublisher,
-      URI sharedBrokerUri,
+      Identifier sharedBrokerUri,
       String jmxName,
       MessageDispatcher messageDispatcher) throws MALException {
     super(providerManager, service, endpoint, messageDispatcher, jmxName);
     this.handler = handler;
     this.authenticationId = authenticationId;
     this.defaultQoSProperties = defaultQoSProperties;
+    this.supplements = supplements;
     this.isPublisher = isPublisher;
     this.sharedBrokerUri = sharedBrokerUri;
     maps = new InteractionManager();
@@ -156,6 +161,18 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
         return null;
       }
     } else {
+      return new URI(sharedBrokerUri.getValue());
+    }
+  }
+
+  public Identifier getBrokerDestinationId() {
+    if (sharedBrokerUri == null) {
+      if (isPublisher.booleanValue()) {
+        return getDestinationId();
+      } else {
+        return null;
+      }
+    } else {
       return sharedBrokerUri;
     }
   }
@@ -166,7 +183,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       super(msg, CNESMALProvider.this);
     }
 
-    private void replyError(MALStandardError error) throws MALInteractionException, MALException {
+    private void replyError(MOErrorException error) throws MALInteractionException, MALException {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "ProviderTask.replyError(" + error + ')');
       MALService service = getService();
@@ -183,43 +200,38 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
         break;
       case InteractionType._SUBMIT_INDEX:
         CNESMALSubmit submit = new CNESMALSubmit(header, CNESMALProvider.this, msg,
-            operation, authenticationId);
+            operation, authenticationId, supplements);
         submit.sendError(error);
         break;
       case InteractionType._REQUEST_INDEX:
         CNESMALRequest request = new CNESMALRequest(header, CNESMALProvider.this,
-            msg, operation, authenticationId);
+            msg, operation, authenticationId, supplements);
         request.sendError(error);
         break;
       case InteractionType._INVOKE_INDEX:
         CNESMALInvoke invoke = new CNESMALInvoke(header, CNESMALProvider.this, msg,
-            operation, authenticationId);
+            operation, authenticationId, supplements);
         invoke.sendError(error);
         break;
       case InteractionType._PROGRESS_INDEX:
         CNESMALProgress progress = new CNESMALProgress(header, CNESMALProvider.this,
-            msg, operation, authenticationId);
+            msg, operation, authenticationId, supplements);
         progress.sendError(error);
         break;
       case InteractionType._PUBSUB_INDEX:
         if (header.getInteractionStage().getValue() == MALPubSubOperation._REGISTER_STAGE) {
           CNESMALRegister register = new CNESMALRegister(header,
-              CNESMALProvider.this, msg, operation, authenticationId);
+              CNESMALProvider.this, msg, operation, authenticationId, supplements);
           register.sendError(error);
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._DEREGISTER_STAGE) {
           CNESMALDeregister deregister = new CNESMALDeregister(header,
-              CNESMALProvider.this, msg, operation, authenticationId);
+              CNESMALProvider.this, msg, operation, authenticationId, supplements);
           deregister.sendError(error);
         }  else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_STAGE) {
-          sendPublishError(header.getURIFrom(), 
+          sendPublishError(header.getFrom(), 
               (MALPubSubOperation) operation, 
-              header.getDomain(), 
-              header.getNetworkZone(),
-              header.getSession(), 
-              header.getSessionName(), 
-              header.getQoSlevel(), 
+              header.getSupplements(),
               msg.getQoSProperties(), 
-              header.getPriority(),
               header.getTransactionId(),
               MALHelper.UNKNOWN_ERROR_NUMBER,
               null);
@@ -247,7 +259,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     }
     
     @Override
-    protected void onDeliveryError(MALStandardError error) throws MALInteractionException, MALException {
+    protected void onDeliveryError(MOErrorException error) throws MALInteractionException, MALException {
       replyError(error);
     }
 
@@ -264,12 +276,12 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       switch (msg.getHeader().getInteractionType().getOrdinal()) {
       case InteractionType._SEND_INDEX:
         CNESMALInteraction interaction = new CNESMALInteraction(header,
-            CNESMALProvider.this, msg, operation, authenticationId);
+            CNESMALProvider.this, msg, operation, authenticationId, supplements);
         handler.handleSend(interaction, msg.getBody());
         break;
       case InteractionType._SUBMIT_INDEX:
         CNESMALSubmit submit = new CNESMALSubmit(header, CNESMALProvider.this,
-            msg, operation, authenticationId);
+            msg, operation, authenticationId, supplements);
         try {
           handler.handleSubmit(submit, msg.getBody());
         } catch (MALInteractionException exc) {
@@ -278,7 +290,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
         break;
       case InteractionType._REQUEST_INDEX:
         CNESMALRequest request = new CNESMALRequest(header,
-            CNESMALProvider.this, msg, operation, authenticationId);
+            CNESMALProvider.this, msg, operation, authenticationId, supplements);
         try {
           handler.handleRequest(request, msg.getBody());
         } catch (MALInteractionException exc) {
@@ -287,7 +299,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
         break;
       case InteractionType._INVOKE_INDEX:
         CNESMALInvoke invoke = new CNESMALInvoke(header, CNESMALProvider.this,
-            msg, operation, authenticationId);
+            msg, operation, authenticationId, supplements);
         try {
           handler.handleInvoke(invoke, msg.getBody());
         } catch (MALInteractionException exc) {
@@ -296,7 +308,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
         break;
       case InteractionType._PROGRESS_INDEX:
         CNESMALProgress progress = new CNESMALProgress(header,
-            CNESMALProvider.this, msg, operation, authenticationId);
+            CNESMALProvider.this, msg, operation, authenticationId, supplements);
         try {
           handler.handleProgress(progress, msg.getBody());
         } catch (MALInteractionException exc) {
@@ -306,7 +318,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       case InteractionType._PUBSUB_INDEX:
         if (header.getInteractionStage().getValue() == MALPubSubOperation._REGISTER_STAGE) {
           CNESMALRegister register = new CNESMALRegister(header,
-              CNESMALProvider.this, msg, operation, authenticationId);
+              CNESMALProvider.this, msg, operation, authenticationId, supplements);
           MALRegisterBody registerBody = (MALRegisterBody) msg.getBody();
           Subscription subscription = registerBody.getSubscription();
           brokerAdapter.handleRegister(header, subscription,
@@ -314,9 +326,9 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
           register.sendAcknowledgement();
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._DEREGISTER_STAGE) {
           CNESMALDeregister deregister = new CNESMALDeregister(header,
-              CNESMALProvider.this, msg, operation, authenticationId);
+              CNESMALProvider.this, msg, operation, authenticationId, supplements);
           MALDeregisterBody deregisterBody = (MALDeregisterBody) msg.getBody();
-          IdentifierList subIdList = deregisterBody.getIdentifierList();
+          IdentifierList subIdList = deregisterBody.getSubscriptionIds();
           brokerAdapter.handleDeregister(header, subIdList);
           deregister.sendAcknowledgement();
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_REGISTER_ACK_STAGE) {
@@ -339,22 +351,23 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
             }
           } else {
             MALPublishBody publishBody = (MALPublishBody) msg.getBody();
-            handlePublish((MALPubSubOperation) operation, header,
-                msg.getQoSProperties(), publishBody.getUpdateHeaderList(),
-                publishBody.getUpdateLists());
+            handlePublish((MALPubSubOperation) operation, header, header.getSupplements(),
+                msg.getQoSProperties(), publishBody.getUpdateHeader(),
+                publishBody.getUpdateObjects());
           }
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_REGISTER_STAGE) {
           CNESMALPublishRegister register = new CNESMALPublishRegister(header,
-              CNESMALProvider.this, msg, operation, authenticationId);
+              CNESMALProvider.this, msg, operation, authenticationId, supplements);
           MALPublishRegisterBody publishRegisterBody = (MALPublishRegisterBody) msg
               .getBody();
-          EntityKeyList entityKeys = publishRegisterBody.getEntityKeyList();
+          IdentifierList subKeys = publishRegisterBody.getSubscriptionKeyNames();
+          AttributeTypeList keyTypes = publishRegisterBody.getSubscriptionKeyTypes();
           try {
             if (brokerAdapter != null) {
-              brokerAdapter.handlePublishRegister(header, entityKeys);
+              brokerAdapter.handlePublishRegister(header, subKeys, keyTypes);
               register.sendAcknowledgement();
             } else {
-              register.sendError(new MALStandardError(
+              register.sendError(new MOErrorException(
                   MALHelper.INTERNAL_ERROR_NUMBER, new Union("Not a broker")));
             }
           } catch (MALInteractionException e) {
@@ -364,7 +377,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
           }
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_DEREGISTER_STAGE) {
           CNESMALPublishDeregister deregister = new CNESMALPublishDeregister(
-              header, CNESMALProvider.this, msg, operation, authenticationId);
+              header, CNESMALProvider.this, msg, operation, authenticationId, supplements);
           try {
             brokerAdapter.handlePublishDeregister(header);
             deregister.sendAcknowledgement();
@@ -401,12 +414,18 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     return super.getService();
   }
   
+  /**
+   * Unable to find the service area
+   * remove the function
+   * 
   public String getAreaName() {
     return getService().getArea().getName().getValue();
   }
+  */
 
   public int getAreaNumber() {
-    return getService().getArea().getNumber().getValue();
+    // return getService().getArea().getNumber().getValue();
+    return getService().getAreaNumber().getValue();
   }
 
   public String getServiceName() {
@@ -414,11 +433,18 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   }
 
   public int getServiceNumber() {
-    return getService().getNumber().getValue();
+    return getService().getServiceNumber().getValue();
   }
 
+  /**
+   * TODO SL revert to area version
+   *
   public int getAreaVersion() {
     return getService().getArea().getVersion().getValue();
+  }
+  */
+  public int getServiceVersion() {
+    return getService().getServiceVersion().getValue();
   }
 
   public String getBrokerURIAsString() {
@@ -454,43 +480,36 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       Map publishQosProps,
       UInteger publishPriority,
       Long transactionId,
-      Boolean isError) {
+      Boolean isError,
+      NamedValueList supplements) {
     return new CNESMALMessageHeader(
-        getURI(), authenticationId, getBrokerURI(), 
-        new Time(System.currentTimeMillis()), publishQos, publishPriority, 
-        domain, networkZone, sessionType, sessionName, InteractionType.PUBSUB, 
-        stage, transactionId, op.getService().getArea().getNumber(), 
-        op.getService().getNumber(), op.getNumber(), 
-        getService().getArea().getVersion(), isError);
+        getDestinationId(), authenticationId, getDestinationId(), 
+        new Time(System.currentTimeMillis()), InteractionType.PUBSUB, 
+        stage, transactionId, op.getServiceKey().getAreaNumber(), 
+        op.getServiceKey().getServiceNumber(), op.getNumber(), 
+        getService().getServiceVersion(), isError, supplements);
   }
 
   private void sendPublishError(
-      URI uriTo,
+      Identifier uriTo,
       MALPubSubOperation op, 
-      IdentifierList domain,
-      Identifier networkZone,
-      SessionType sessionType,
-      Identifier sessionName,
-      QoSLevel publishQos,
+      NamedValueList supplements,
       Map publishQosProps,
-      UInteger publishPriority,
       Long tid,
       UInteger errorNumber,
       Object extraInformation) throws MALInteractionException, MALException  {
     MALMessage msg = createMessage(
         authenticationId, uriTo,
-        new Time(System.currentTimeMillis()), publishQos,
-        publishPriority, domain,
-        networkZone, sessionType, sessionName,
+        new Time(System.currentTimeMillis()),
         tid,
         Boolean.TRUE,
         op, MALPubSubOperation.PUBLISH_STAGE, 
-        publishQosProps,
+        supplements, publishQosProps,
         errorNumber,
         extraInformation);
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "sendPublishError: " + msg);
-    if (msg.getHeader().getURITo().equals(getURI())) {
+    if (msg.getHeader().getTo().equals(getURI())) {
       onMessage(null, msg);
     } else {
       sendMessage(msg);
@@ -499,56 +518,38 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   
   MALMessage publish(
       MALPubSubOperation op,
-      IdentifierList domain,
-      Identifier networkZone,
-      SessionType sessionType,
-      Identifier sessionName,
-      QoSLevel publishQos,
+      NamedValueList supplements,
       Map publishQosProps,
-      UInteger publishPriority,
       Long tid,
-      UpdateHeaderList updateHeaderList,
-      List... updateLists) throws MALInteractionException, MALException {
+      UpdateHeader updateHeader,
+      Object... updateObjects) throws MALInteractionException, MALException {
     checkClosed();
-    return publish(getURI(), op, domain, 
-        networkZone, sessionType, sessionName,
-        publishQos, publishQosProps, publishPriority, tid,
-        updateHeaderList, updateLists);
+    return publish(getDestinationId(), op, supplements, publishQosProps, tid,
+        updateHeader, updateObjects);
   }
 
   private MALMessage publish(
-      URI uriFrom,
+      Identifier uriFrom,
       MALPubSubOperation op, 
-      IdentifierList domain,
-      Identifier networkZone,
-      SessionType sessionType,
-      Identifier sessionName,
-      QoSLevel publishQos,
+      NamedValueList supplements,
       Map publishQosProps,
-      UInteger publishPriority,
       Long tid,
-      UpdateHeaderList updateHeaderList,
-      List... updateLists) throws MALInteractionException, MALException {
+      UpdateHeader updateHeader,
+      Object... updateObjects) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALProvider.publish(" +
           uriFrom + ',' +
           op + ',' + 
-          updateHeaderList + ',' + 
-          updateLists + ',' + 
-          domain + ',' + 
-          networkZone + ',' + 
-          sessionType + ',' + 
-          sessionName + ',' + 
-          publishQos + ',' + 
-          publishPriority + ',' + 
+          updateHeader + ',' + 
+          updateObjects + ',' + 
           publishQosProps + ',' + tid + ')');
     publishedMessageCount++;
-    publishedUpdateListSize = updateHeaderList.size();
+    publishedUpdateListSize = 1;
     
     if (tid == null) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Null transaction id");
-      MALStandardError error = new MALStandardError(MALHelper.INCORRECT_STATE_ERROR_NUMBER, null);
+      MOErrorException error = new MOErrorException(MALHelper.INCORRECT_STATE_ERROR_NUMBER, null);
       throw new MALInteractionException(error);
     }
     
@@ -556,9 +557,9 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     if (brokerAdapter != null) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Local publish");
-      msg = localPublish(uriFrom, op, domain, networkZone, sessionType,
-          sessionName, publishQos, publishQosProps, publishPriority, tid,
-          updateHeaderList, updateLists);
+      // TODO SL use supplements ?
+      msg = localPublish(uriFrom, op, new NamedValueList(), publishQosProps, tid,
+          updateHeader, updateObjects);
     } else {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Remote publish");
@@ -570,18 +571,19 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       if (publishQosProps == null) {
         publishQosProps = defaultQoSProperties;
       }
-      Object[] bodyElements = new Object[updateLists.length + 1];
-      System.arraycopy(updateLists, 0, bodyElements, 1, updateLists.length);
-      bodyElements[0] = updateHeaderList;
+      Object[] bodyElements = new Object[updateObjects.length + 1];
+      System.arraycopy(updateObjects, 0, bodyElements, 1, updateObjects.length);
+      bodyElements[0] = updateHeader;
       msg = createMessage(
-          authenticationId, getBrokerURI(),
-          new Time(System.currentTimeMillis()), publishQos,
-          publishPriority, domain,
-          networkZone, sessionType, sessionName,
+          authenticationId, getBrokerDestinationId(),
+          new Time(System.currentTimeMillis()),
           tid,
           Boolean.FALSE,
           op,
           MALPubSubOperation.PUBLISH_STAGE, 
+          // TODO SL use supplements ?
+          // supplements,
+          new NamedValueList(),
           publishQosProps,
           bodyElements);
       sendMessage(msg);
@@ -593,38 +595,32 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     return msg;
   }
   
-  private MALMessage localPublish(URI uriFrom,
+  private MALMessage localPublish(
+      Identifier uriFrom,
       MALPubSubOperation op, 
-      IdentifierList domain,
-      Identifier networkZone,
-      SessionType sessionType,
-      Identifier sessionName,
-      QoSLevel publishQos,
+      NamedValueList supplements,
       Map publishQosProps,
-      UInteger publishPriority,
       Long tid,
-      UpdateHeaderList updateHeaderList,
-      List... updateLists) throws MALInteractionException, MALException {
+      UpdateHeader updateHeader,
+      Object... updateObjects) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALProvider.localPublish()");
     
-    Object[] publishBodyElements = new Object[updateLists.length + 1];
-    System.arraycopy(updateLists, 0, publishBodyElements, 1, updateLists.length);
-    publishBodyElements[0] = updateHeaderList;
+    Object[] publishBodyElements = new Object[updateObjects.length + 1];
+    System.arraycopy(updateObjects, 0, publishBodyElements, 1, updateObjects.length);
+    publishBodyElements[0] = updateHeader;
     
     MALMessage msg = createMessage(
-        authenticationId, getBrokerURI(),
-        new Time(System.currentTimeMillis()), publishQos,
-        publishPriority, domain,
-        networkZone, sessionType, sessionName,
+        authenticationId, getBrokerDestinationId(),
+        new Time(System.currentTimeMillis()),
         tid,
         Boolean.FALSE,
         op,
         MALPubSubOperation.PUBLISH_STAGE, 
-        publishQosProps,
+        supplements, publishQosProps,
         publishBodyElements);
     
-    handlePublish(op, msg.getHeader(), publishQosProps, updateHeaderList, updateLists);
+    handlePublish(op, msg.getHeader(), supplements, publishQosProps, updateHeader, updateObjects);
     
     return msg;
   }
@@ -632,9 +628,14 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   private void handlePublish(
       MALPubSubOperation op, 
       MALMessageHeader header,
+      NamedValueList supplements,
       Map publishQosProps,
-      UpdateHeaderList updateHeaderList,
-      List... updateLists) throws MALInteractionException, MALException {
+      UpdateHeader updateHeader,
+      Object... updateObjects) throws MALInteractionException, MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALProvider.handlePublish(" +
+          header.getServiceArea() + ':' + header.getService() + ':' + header.getOperation() +
+          ", tid=" + header.getTransactionId() + ")");
     /*
     Identifier sessionName = header.getSessionName();
     String sessionNameS = null;
@@ -643,17 +644,13 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     }*/
 
     BrokerPublication publication = new BrokerPublication(
-      header.getURIFrom(),
-      header.getDomain(),
-      header.getNetworkZone(),
-      header.getSession(),
-      header.getSessionName(),
-      updateHeaderList,
-      updateLists,
+      header.getFrom(),
+      updateHeader,
+      updateObjects,
       header.getServiceArea(),
       header.getService(),
       header.getOperation(),
-      header.getAreaVersion());
+      header.getServiceVersion());
 
     BrokerNotification[] notifications;
     try {
@@ -661,42 +658,33 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     } catch (UnknownPublisherException upe) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "", upe);
-      MALStandardError error = new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER, null);
+      MOErrorException error = new MOErrorException(MALHelper.INTERNAL_ERROR_NUMBER, null);
       sendPublishError(
-          header.getURIFrom(),
+          header.getFrom(),
           op,
-          header.getDomain(), 
-          header.getNetworkZone(), 
-          header.getSession(), 
-          header.getSessionName(), 
-          header.getQoSlevel(),
+          // TODO SL bug in testbed ?
+          // supplements,
+          new NamedValueList(),
           publishQosProps,
-          header.getPriority(),
           header.getTransactionId(), 
           MALHelper.INTERNAL_ERROR_NUMBER, new Union(upe.toString()));
       return;
     } catch (UnknownEntityException uee) {
-      if (logger.isLoggable(BasicLevel.DEBUG))
-        logger.log(BasicLevel.DEBUG, "", uee);
+      // TODO SL pas sur que cela existe encore
       UpdateCheckReport report = uee.getReport();
-      EntityKeyList unknownEntityKeyList = new EntityKeyList();
-      UpdateHeaderList failedUpdateHeaders = report.getFailedUpdateHeaders();
-      for (int i = 0; i < failedUpdateHeaders.size(); i++) {
-        EntityKey key = failedUpdateHeaders.get(i).getKey();
-        unknownEntityKeyList.add(key);
-      }
       sendPublishError(
-          header.getURIFrom(),
+          header.getFrom(),
           op, 
-          header.getDomain(), 
-          header.getNetworkZone(), 
-          header.getSession(), 
-          header.getSessionName(), 
-          report.getQos(),
+          // TODO SL bug in testbed ?
+          // supplements,
+          new NamedValueList(),
           publishQosProps,
-          report.getPriority(),
-          report.getTransactionId(),
-          MALHelper.UNKNOWN_ERROR_NUMBER, unknownEntityKeyList);
+          header.getTransactionId(),
+          MALHelper.UNKNOWN_ERROR_NUMBER, null);
+      return;
+    }
+    
+    if (notifications == null || notifications.length== 0) {
       return;
     }
     
@@ -712,24 +700,21 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
           notifications[i].getSubscriptionUpdateList();
       for (int j = 0; j < subscriptionUpdates.size(); j++) {
         BrokerSubscriptionUpdate subscriptionUpdate = subscriptionUpdates.get(j);
-        List[] notifiedUpdateLists = subscriptionUpdate.getUpdateLists();
-        Object[] bodyElements = new Object[notifiedUpdateLists.length + 2];
-        System.arraycopy(notifiedUpdateLists, 0, bodyElements, 2, notifiedUpdateLists.length);
+        Object[] notifiedUpdateObjects = subscriptionUpdate.getUpdateObjects();
+        Object[] bodyElements = new Object[notifiedUpdateObjects.length + 2];
+        System.arraycopy(notifiedUpdateObjects, 0, bodyElements, 2, notifiedUpdateObjects.length);
         bodyElements[0] = subscriptionUpdate.getSubscriptionId();
-        bodyElements[1] = subscriptionUpdate.getUpdateHeaders();
+        bodyElements[1] = subscriptionUpdate.getUpdateHeader();
         notifyMessages[messageIndex++] = createMessage(
           authenticationId,
           notifications[i].getSubscriberUri(),
           new Time(System.currentTimeMillis()), 
-          notifications[i].getQosLevel(),
-          notifications[i].getPriority(), 
-          notifications[i].getDomain(),
-          notifications[i].getNetworkZone(), 
-          notifications[i].getSessionType(), 
-          notifications[i].getSessionName(),
           notifications[i].getTransactionId(),
           Boolean.FALSE,
           op, MALPubSubOperation.NOTIFY_STAGE, 
+          // TODO SL bug in testbed ?
+          // supplements,
+          new NamedValueList(),
           notifications[i].getQosProperties(),
           bodyElements);
       }
@@ -737,38 +722,39 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     sendMessages(notifyMessages);
   }
   
-  Blob getAuthenticationId() {
+  public Blob getAuthenticationId() {
     return authenticationId;
   }
 
+  public Blob setAuthenticationId(Blob newAuthenticationId) {
+    // added method to comply to ESA Java API
+    Blob previous = authenticationId;
+    authenticationId = newAuthenticationId;
+    return previous;
+  }
+
   public MALMessage publishRegister(
-      MALPubSubOperation op, EntityKeyList entityKeys,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, QoSLevel publishQos, Map publishQosProps,
+      MALPubSubOperation op, IdentifierList subKeys, AttributeTypeList keyTypes,
+      NamedValueList supplements, Map publishQosProps,
       UInteger publishPriority, 
       boolean async,
       MALPublishInteractionListener listener) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALProvider.publishRegister(" + op + ',' +
-          domain + ',' + networkZone + ',' + sessionType + ',' + sessionName + ',' +
-          publishQos + ',' + publishQosProps + ',' + publishPriority + ')');
+          supplements + ',' + publishQosProps + ',' + publishPriority + ')');
     checkClosed();
     Long tid = maps.getTransactionId();
     MALMessage msg = createMessage(
         authenticationId,
-        getBrokerURI(),
+        getBrokerDestinationId(),
         new Time(System.currentTimeMillis()), 
-        publishQos,
-        publishPriority, 
-        domain,
-        networkZone, 
-        sessionType, 
-        sessionName,
         tid,
         Boolean.FALSE,
         op, MALPubSubOperation.PUBLISH_REGISTER_STAGE,
+        supplements,
         publishQosProps,
-        entityKeys);
+        subKeys,
+        keyTypes);
     
     Interaction interaction;
     if (async) {
@@ -780,20 +766,15 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     maps.putInteraction(tid, interaction);
 
     if (brokerAdapter != null) {
-      brokerAdapter.handlePublishRegister(msg.getHeader(), entityKeys);
+      brokerAdapter.handlePublishRegister(msg.getHeader(), subKeys, keyTypes);
       MALMessage publishRegisterAckMsg = createMessage(
           authenticationId,
-          msg.getHeader().getURIFrom(),
+          msg.getHeader().getFrom(),
           new Time(System.currentTimeMillis()), 
-          publishQos,
-          publishPriority, 
-          domain,
-          networkZone, 
-          sessionType, 
-          sessionName,
           tid,
           Boolean.FALSE,
           op, MALPubSubOperation.PUBLISH_REGISTER_ACK_STAGE, 
+          supplements,
           publishQosProps);
       sendMessage(publishRegisterAckMsg);
     } else {
@@ -811,8 +792,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   
   public MALMessage publishDeregister(
       MALPubSubOperation op,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, QoSLevel publishQos, Map publishQosProps,
+      NamedValueList supplements, Map publishQosProps,
       UInteger publishPriority,
       boolean async,
       MALPublishInteractionListener listener) throws MALInteractionException, MALException {
@@ -820,17 +800,12 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     Long tid = maps.getTransactionId();
     MALMessage msg = createMessage(
         authenticationId,
-        getBrokerURI(),
+        getBrokerDestinationId(),
         new Time(System.currentTimeMillis()), 
-        publishQos,
-        publishPriority, 
-        domain,
-        networkZone, 
-        sessionType, 
-        sessionName,
         tid,
         Boolean.FALSE,
         op, MALPubSubOperation.PUBLISH_DEREGISTER_STAGE, 
+        supplements,
         publishQosProps);
     
     Interaction interaction;
@@ -846,17 +821,12 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       brokerAdapter.handlePublishDeregister(msg.getHeader());
       MALMessage publishRegisterAckMsg = createMessage(
           authenticationId,
-          msg.getHeader().getURIFrom(),
+          msg.getHeader().getFrom(),
           new Time(System.currentTimeMillis()), 
-          publishQos,
-          publishPriority, 
-          domain,
-          networkZone, 
-          sessionType, 
-          sessionName,
           tid,
           Boolean.FALSE,
           op, MALPubSubOperation.PUBLISH_DEREGISTER_ACK_STAGE, 
+          supplements,
           publishQosProps);
       onMessage(null, publishRegisterAckMsg);
     } else {
@@ -876,10 +846,24 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     return authenticationId;
   }
 
+  public Blob setBrokerAuthenticationId(Blob newAuthenticationId) {
+    // added method to comply to ESA Java API
+    Blob previous = authenticationId;
+    authenticationId = newAuthenticationId;
+    return previous;
+  }
+
+  public MALPublisher createPublisher(MALPubSubOperation op,
+      IdentifierList domain, SessionType sessionType,
+      Identifier sessionName, QoSLevel publishQos, Map publishQosProps, 
+      NamedValueList supplements) throws MALException {
+    return createPublisher(op, domain, new Identifier(""), sessionType, sessionName, publishQos, publishQosProps, new UInteger(1), supplements);
+  }
+  
   public MALPublisher createPublisher(MALPubSubOperation op,
       IdentifierList domain, Identifier networkZone, SessionType sessionType,
       Identifier sessionName, QoSLevel publishQos, Map publishQosProps, 
-      UInteger publishPriority) throws MALException {
+      UInteger publishPriority, NamedValueList supplements) throws MALException {
     checkClosed();
     if (op == null) throw new IllegalArgumentException("Null operation");
     if (domain == null) throw new IllegalArgumentException("Null domain");
@@ -888,9 +872,10 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
     if (sessionName == null) throw new IllegalArgumentException("Null session name");
     if (publishQos == null) throw new IllegalArgumentException("Null QoS");
     if (publishPriority == null) throw new IllegalArgumentException("Null priority");
-    CNESMALPublisher newPublisher = new CNESMALPublisher(
-       this, op, domain, networkZone, sessionType, sessionName, publishQos, publishQosProps,
-       publishPriority);
+    // Currently ignore the supplements for the provider, use empty list in the testbed
+
+    CNESMALPublisher newPublisher = null;
+    boolean found = false;
     synchronized (publishers) {
       for (int i = 0; i < publishers.size(); i++) {
         CNESMALPublisher publisher = publishers.elementAt(i);
@@ -898,10 +883,15 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
           publisher.getNetworkZone().equals(networkZone) &&
           publisher.getSessionType().equals(sessionType) &&
           publisher.getSessionName().equals(sessionName)) {
-          newPublisher.setTid(publisher.getTid());
+          newPublisher = publisher;
+          found = true;
         }
       }
-      publishers.addElement(newPublisher);
+      if (!found) {
+        newPublisher = new CNESMALPublisher(this, op, domain, networkZone, sessionType, sessionName, publishQos, publishQosProps,
+                                            publishPriority);
+        publishers.addElement(newPublisher);
+      }
     }
     return newPublisher;
   }
@@ -911,7 +901,7 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
   }
   
   protected void handleTransmitError(MALMessageHeader header,
-      MALStandardError standardError) throws MALException {
+      MOErrorException standardError) throws MALException {
     if (header.getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX &&
         header.getInteractionStage().getValue() == MALPubSubOperation._NOTIFY_STAGE) {
       if (standardError.getErrorNumber().getValue() == MALHelper._DESTINATION_UNKNOWN_ERROR_NUMBER) {
@@ -948,5 +938,9 @@ public class CNESMALProvider extends Binding implements MALProvider, CNESMALProv
       throws MALException {
     messageDispatcher.removeProvider(this);
   }
-  
+
+  public String getAreaName() {
+    return getServiceArea().getName().getValue();
+  }
+
 }

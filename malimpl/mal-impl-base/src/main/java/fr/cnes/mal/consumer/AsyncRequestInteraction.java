@@ -26,10 +26,14 @@ package fr.cnes.mal.consumer;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALRequestOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.consumer.MALInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -62,7 +66,14 @@ public class AsyncRequestInteraction extends Interaction {
       MALMessageHeader header, MALMessageBody body, Map qosProperties) throws MALException {
     if (header.getInteractionType().getOrdinal() ==
       InteractionType._REQUEST_INDEX) {
-      RequestInteraction.checkStageTransition(getStage(), header.getInteractionStage());
+      try {
+        RequestInteraction.checkStageTransition(getStage(), header.getInteractionStage());
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(MALRequestOperation.REQUEST_RESPONSE_STAGE);
       setStatus(DONE);
       listener.requestResponseReceived(header, body, qosProperties);
@@ -74,8 +85,19 @@ public class AsyncRequestInteraction extends Interaction {
   protected void onError(MALOperation operation, MALMessageHeader header,
       MALErrorBody body, Map qosProperties) throws MALException {
     if (header.getInteractionType().getOrdinal() == InteractionType._REQUEST_INDEX) {
-      RequestInteraction.checkStageTransition(getStage(),
-          header.getInteractionStage());
+      UOctet nextStage = header.getInteractionStage();
+      try {
+        RequestInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
       setStage(MALRequestOperation.REQUEST_RESPONSE_STAGE);
       setStatus(FAILED);
       if (listener != null) {

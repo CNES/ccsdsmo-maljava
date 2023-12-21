@@ -26,10 +26,13 @@ package fr.cnes.mal.consumer;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALRequestOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -69,7 +72,14 @@ public class RequestInteraction extends SyncInteraction {
     if (header.getInteractionType().getOrdinal() ==
       InteractionType._REQUEST_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      checkStageTransition(getStage(), nextStage);
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       setStatus(DONE);
       notifyInitiator(body);
@@ -82,9 +92,20 @@ public class RequestInteraction extends SyncInteraction {
       MALErrorBody body, Map qosProperties) throws MALException {
     if (header.getInteractionType().getOrdinal() == InteractionType._REQUEST_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      checkStageTransition(getStage(), nextStage);
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
       setStage(nextStage);
-      setStatus(DONE);
+      setStatus(FAILED);
       notifyInitiator(body);
     } else {
       throw CNESMALContext.createException("Unexpected interaction type: "

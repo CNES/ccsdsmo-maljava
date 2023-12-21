@@ -25,12 +25,16 @@ package fr.cnes.mal.provider;
 
 import java.util.Map;
 
+import org.ccsds.moims.mo.mal.MALArea;
+import org.ccsds.moims.mo.mal.MALContextFactory;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALService;
 import org.ccsds.moims.mo.mal.provider.MALInteractionHandler;
 import org.ccsds.moims.mo.mal.provider.MALProvider;
 import org.ccsds.moims.mo.mal.provider.MALProviderManager;
 import org.ccsds.moims.mo.mal.structures.Blob;
+import org.ccsds.moims.mo.mal.structures.Identifier;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.URI;
@@ -62,7 +66,8 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
       UInteger priorityLevelNumber, 
       Map defaultQoSProperties,
       Boolean isPublisher, 
-      URI sharedBrokerUri) throws MALException {
+      Identifier sharedBrokerUri,
+      NamedValueList supplements) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALProviderManager.createProvider(" +
 		  localName + ',' + 
@@ -76,14 +81,15 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
     if (handler == null) throw new IllegalArgumentException("Null handler");
     if (expectedQos == null) throw new IllegalArgumentException("Null expectedQos");
     if (priorityLevelNumber == null) throw new IllegalArgumentException("Null priorityLevelNumber");
-    if (isPublisher == null) throw new IllegalArgumentException("Null isPublisher");
+    if (supplements == null) supplements = new NamedValueList();
+    // Currently ignore the supplements for the provider, ping back the supplements from the consumer
     
     MALTransport transport = getMalContext().getTransport(protocol);
-    MALEndpoint ep = transport.createEndpoint(localName, defaultQoSProperties);
+    MALEndpoint ep = transport.createEndpoint(localName, defaultQoSProperties, supplements);
     
     CNESMALProvider provider = doCreateProvider(ep, service, authenticationId, 
         handler, expectedQos, priorityLevelNumber,
-        defaultQoSProperties, isPublisher, sharedBrokerUri, null);
+        defaultQoSProperties, isPublisher, supplements, sharedBrokerUri, null);
     ep.setMessageListener(provider);
     ep.startMessageDelivery();
     return provider;
@@ -92,7 +98,8 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
   public synchronized MALProvider createProvider(MALEndpoint endPoint, MALService service,
       Blob authenticationId, MALInteractionHandler handler,
       QoSLevel[] expectedQos, UInteger priorityLevelNumber,
-      Map defaultQoSProperties, Boolean isPublisher, URI sharedBrokerUri)
+      Map defaultQoSProperties, Boolean isPublisher, Identifier sharedBrokerUri,
+      NamedValueList supplements)
       throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALProviderManager.createProvider(" +
@@ -108,10 +115,12 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
     if (expectedQos == null) throw new IllegalArgumentException("Null expectedQos");
     if (priorityLevelNumber == null) throw new IllegalArgumentException("Null priorityLevelNumber");
     if (isPublisher == null) throw new IllegalArgumentException("Null isPublisher");
+    if (supplements == null) supplements = new NamedValueList();
+
     MessageDispatcher messageDispatcher = getMalContext().getMessageDispatcher(endPoint);
     CNESMALProvider provider = doCreateProvider(endPoint, service, authenticationId, 
         handler, expectedQos, priorityLevelNumber,
-        defaultQoSProperties, isPublisher, sharedBrokerUri, messageDispatcher);
+        defaultQoSProperties, isPublisher, supplements, sharedBrokerUri, messageDispatcher);
     messageDispatcher.addProvider(provider);
     return provider;
   }
@@ -124,13 +133,17 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
       UInteger priorityLevelNumber, 
       Map defaultQoSProperties,
       Boolean isPublisher, 
-      URI sharedBrokerUri,
+      NamedValueList supplements,
+      Identifier sharedBrokerUri,
       MessageDispatcher messageDispatcher) throws MALException {
     String mBeanName = getMBeanName(ep.getURI().getValue(), service);
+    // added for commit 0042213
+    MALContextFactory.getElementsRegistry().loadServiceAndAreaElements(service);
     CNESMALProvider provider = new CNESMALProvider(
         this, ep, service, handler, 
         authenticationId,
         defaultQoSProperties,
+        supplements,
         isPublisher,
         sharedBrokerUri,
         mBeanName, messageDispatcher);
@@ -150,11 +163,15 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
     String escapedUri = uri.replace(':', '-');
     escapedUri = escapedUri.replace('=', '-');
     StringBuffer buf = new StringBuffer();
+    String areaName = service.getAreaNumber().toString();
+    MALArea area = MALContextFactory.lookupArea(service.getAreaNumber(), service.getServiceVersion());
+    if (area != null)
+      areaName = area.getName().getValue();
     buf.append(getJmxName());
     buf.append(",service=");
-    buf.append(service.getArea().getName());
+    buf.append(areaName);
     buf.append("-v");
-    buf.append(service.getArea().getVersion());
+    buf.append(service.getServiceVersion());
     buf.append("-");
     buf.append(service.getName());
     buf.append(",provider=Provider-");
@@ -175,5 +192,56 @@ public class CNESMALProviderManager extends BindingManager<CNESMALProvider> impl
   protected void doClose() throws MALException {
     // Nothing to do
   }
-  
+
+  // Implement MALProviderManager with from/to as URIs
+  public MALProvider createProvider(String localName, String protocol,
+                                    MALService service, Blob authenticationId,
+                                    MALInteractionHandler handler,
+                                    QoSLevel[] expectedQos,
+                                    UInteger priorityLevelNumber,
+                                    Map defaultQoSProperties,
+                                    Boolean isPublisher, URI sharedBrokerUri,
+                                    NamedValueList supplements) throws IllegalArgumentException,
+                                                                MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALProviderManager.createProvider-3");
+    Identifier sharedBrokerDestinationId = null;
+    if (sharedBrokerUri != null)
+      sharedBrokerDestinationId = new Identifier(sharedBrokerUri.getValue());
+    return createProvider(localName, protocol,
+                          service, authenticationId,
+                          handler,
+                          expectedQos,
+                          priorityLevelNumber,
+                          defaultQoSProperties,
+                          isPublisher,
+                          sharedBrokerDestinationId,
+                          supplements);
+  }
+
+  public MALProvider createProvider(MALEndpoint endpoint, MALService service,
+                                    Blob authenticationId,
+                                    MALInteractionHandler handler,
+                                    QoSLevel[] expectedQos,
+                                    UInteger priorityLevelNumber,
+                                    Map defaultQoSProperties,
+                                    Boolean isPublisher, URI sharedBrokerUri,
+                                    NamedValueList supplements) throws IllegalArgumentException,
+                                                                MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALProviderManager.createProvider-4");
+    Identifier sharedBrokerDestinationId = null;
+    if (sharedBrokerUri != null)
+      sharedBrokerDestinationId = new Identifier(sharedBrokerUri.getValue());
+    return createProvider(endpoint, service,
+                          authenticationId,
+                          handler,
+                          expectedQos,
+                          priorityLevelNumber,
+                          defaultQoSProperties,
+                          isPublisher,
+                          sharedBrokerDestinationId,
+                          supplements);
+  }
+
 }

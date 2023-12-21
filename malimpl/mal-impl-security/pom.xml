@@ -14,8 +14,10 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>fr.cnes.ccsds.mo</groupId>
-			<artifactId>mal-api</artifactId>
+<!-- 			<groupId>fr.cnes.ccsds.mo</groupId> -->
+<!-- 			<artifactId>mal-api</artifactId> -->
+			<groupId>int.esa.ccsds.mo</groupId>
+			<artifactId>api-mal</artifactId>
 		</dependency>
 	</dependencies>
 </project>

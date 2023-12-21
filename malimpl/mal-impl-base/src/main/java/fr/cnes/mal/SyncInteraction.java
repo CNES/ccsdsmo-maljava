@@ -26,7 +26,7 @@ package fr.cnes.mal;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -82,7 +82,7 @@ public abstract class SyncInteraction extends Interaction {
 
     if (result instanceof MALErrorBody) {
       MALErrorBody errorBody = (MALErrorBody) result;
-      MALStandardError error;
+      MOErrorException error;
       try {
         error = errorBody.getError();
       } catch (MALException exc) {

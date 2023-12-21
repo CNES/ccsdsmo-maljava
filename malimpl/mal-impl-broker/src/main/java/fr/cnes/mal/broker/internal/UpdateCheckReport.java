@@ -35,95 +35,92 @@ public class UpdateCheckReport {
 
   private Long transactionId;
   
-  private QoSLevel qos;
+  private Object[] updateToNotify;
   
-  private UInteger priority;
+  private Object[] failedUpdate;
   
-  private List[] updatesToNotify;
+  private UpdateHeader updateHeaderToNotify;
   
-  private List[] failedUpdates;
+  private UpdateHeader failedUpdateHeader;
   
-  private UpdateHeaderList updateHeadersToNotify;
-  
-  private UpdateHeaderList failedUpdateHeaders;
-  
-  private List<EntityPublishContext> entityPublishContextList;
+//  private List<EntityPublishContext> entityPublishContextList;
+  private List<PublisherContext> publisherContextList;
 
-  public UpdateCheckReport(Long transactionId, QoSLevel qos, 
-      UInteger priority, List[] updatesToNotify,
-      List[] failedUpdates) {
+  public UpdateCheckReport(Long transactionId) {
     this.transactionId = transactionId;
-    this.qos = qos;
-    this.priority = priority;
-    this.updatesToNotify = updatesToNotify;
-    this.failedUpdates = failedUpdates;
-    updateHeadersToNotify = new UpdateHeaderList();
-    failedUpdateHeaders = new UpdateHeaderList();
-    entityPublishContextList = new ArrayList<EntityPublishContext>();
+//    entityPublishContextList = new ArrayList<EntityPublishContext>();
+    publisherContextList = new ArrayList<PublisherContext>();
   }
   
-  public void addEntityPublishContext(EntityPublishContext entityPublishContext) {
-    entityPublishContextList.add(entityPublishContext);
+//  public void addEntityPublishContext(EntityPublishContext entityPublishContext) {
+//    entityPublishContextList.add(entityPublishContext);
+//  }
+  public void addPublisherContext(PublisherContext publisherContext) {
+    publisherContextList.add(publisherContext);
   }
   
   public void addUpdateHeaderToNotify(UpdateHeader updateHeader) {
-    updateHeadersToNotify.add(updateHeader);
+    if (updateHeaderToNotify != null)
+      throw new IllegalStateException("Unexpected existing value in UpdateCheckReport.updateHeaderToNotify");
+    updateHeaderToNotify = updateHeader;
   }
   
-  public void addUpdateToNotify(int updateListIndex, Object update) {
-    updatesToNotify[updateListIndex].add(update);
+  public void addUpdateToNotify(Object[] update) {
+    if (updateToNotify != null)
+      throw new IllegalStateException("Unexpected existing value in UpdateCheckReport.updateToNotify");
+    updateToNotify = update;
   }
   
   public void addFailedUpdateHeader(UpdateHeader updateHeader) {
-    failedUpdateHeaders.add(updateHeader);
+    if (failedUpdateHeader != null)
+      throw new IllegalStateException("Unexpected existing value in UpdateCheckReport.failedUpdateHeader");
+    failedUpdateHeader = updateHeader;
   }
   
-  public void addFailedUpdate(int updateListIndex, Object update) {
-    failedUpdates[updateListIndex].add(update);
+  public void addFailedUpdate(Object[] update) {
+    if (failedUpdate != null)
+      throw new IllegalStateException("Unexpected existing value in UpdateCheckReport.failedUpdate");
+    failedUpdate = update;
   }
   
-  public List<EntityPublishContext> getEntityPublishContextList() {
-    return entityPublishContextList;
+//  public List<EntityPublishContext> getEntityPublishContextList() {
+//    return entityPublishContextList;
+//  }
+  public List<PublisherContext> getPublisherContextList() {
+    return publisherContextList;
   }
 
-  public List[] getUpdatesToNotify() {
-    return updatesToNotify;
+  public Object[] getUpdateToNotify() {
+    return updateToNotify;
   }
   
-  public List[] getFailedUpdates() {
-    return failedUpdates;
+  public Object[] getFailedUpdate() {
+    return failedUpdate;
   }
   
-  public UpdateHeaderList getUpdateHeadersToNotify() {
-    return updateHeadersToNotify;
+  public UpdateHeader getUpdateHeaderToNotify() {
+    return updateHeaderToNotify;
   }
   
-  public UpdateHeaderList getFailedUpdateHeaders() {
-    return failedUpdateHeaders;
+  public UpdateHeader getFailedUpdateHeader() {
+    return failedUpdateHeader;
   }
   
+  /**
+   * @deprecated
+   */
   public int getFailedUpdateCount() {
-    return failedUpdateHeaders.size();
+    return 1;
   }
 
   public Long getTransactionId() {
     return transactionId;
   }
 
-  public QoSLevel getQos() {
-    return qos;
-  }
-
-  public UInteger getPriority() {
-    return priority;
-  }
-  
   public String toString() {
     return super.toString() +
     ",transactionId=" + transactionId +
-    ",qos=" + qos +
-    ",priority=" + priority +
-    ",updatesToNotify=" + updatesToNotify +
-    ",failedUpdates=" + failedUpdates + ')';
+    ",updateToNotify=" + updateToNotify +
+    ",failedUpdate=" + failedUpdate + ')';
   }
 }

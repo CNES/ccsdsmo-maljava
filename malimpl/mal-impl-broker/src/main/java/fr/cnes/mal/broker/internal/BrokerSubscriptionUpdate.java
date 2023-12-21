@@ -34,15 +34,14 @@ public class BrokerSubscriptionUpdate {
   
   private Identifier subscriptionId;
   
-  private UpdateHeaderList updateHeaders;
+  private UpdateHeader updateHeader;
   
-  private List[] updateLists;
+  private Object[] updateObjects;
   
   public BrokerSubscriptionUpdate(Identifier subscriptionId,
-      List[] updateLists) {
+      Object[] updateObjects) {
     this.subscriptionId = subscriptionId;
-    this.updateLists = updateLists;
-    updateHeaders = new UpdateHeaderList();
+    this.updateObjects = updateObjects;
   }
   
   public Identifier getSubscriptionId() {
@@ -50,29 +49,29 @@ public class BrokerSubscriptionUpdate {
   }
   
   public boolean alreadyPublished(UpdateHeader updateHeader) {
-    return updateHeaders.contains(updateHeader);
+    return updateHeader.equals(this.updateHeader);
   }
   
   public void addUpdateHeader(UpdateHeader updateHeader) {
-    updateHeaders.add(updateHeader);
+    this.updateHeader = updateHeader;
   }
   
-  public void addUpdate(int listIndex, Object update) {
-    updateLists[listIndex].add(update);
+  public void addUpdate(Object[] update) {
+    updateObjects = update;
   }
   
-  public UpdateHeaderList getUpdateHeaders() {
-    return updateHeaders;
+  public UpdateHeader getUpdateHeader() {
+    return updateHeader;
   }
   
-  public List[] getUpdateLists() {
-    return updateLists;
+  public Object[] getUpdateObjects() {
+    return updateObjects;
   }
 
   @Override
   public String toString() {
     return "BrokerSubscriptionUpdate [subscriptionId=" + subscriptionId
-        + ", updateHeaders=" + updateHeaders + ", updateLists="
-        + Arrays.toString(updateLists) + "]";
+        + ", updateHeader=" + updateHeader + ", updateObjects="
+        + Arrays.toString(updateObjects) + "]";
   }
 }

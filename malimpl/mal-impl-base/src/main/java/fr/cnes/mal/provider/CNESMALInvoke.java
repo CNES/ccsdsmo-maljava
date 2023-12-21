@@ -28,10 +28,11 @@ import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALInvokeOperation;
 import org.ccsds.moims.mo.mal.MALOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALInvoke;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
@@ -46,15 +47,16 @@ public class CNESMALInvoke extends CNESMALInteraction implements MALInvoke {
       MessageSender messageSender, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
-    super(messageHeader, messageSender, request, operation, authenticationId);
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
+    super(messageHeader, messageSender, request, operation, authenticationId, providerSupplements);
     setStage(MALInvokeOperation.INVOKE_STAGE);
   }
 
   public MALMessage sendAcknowledgement(Object... body) throws MALInteractionException, MALException {
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.INVOKE, 
-        MALInvokeOperation.INVOKE_ACK_STAGE, Boolean.FALSE, body);
+        MALInvokeOperation.INVOKE_ACK_STAGE, Boolean.FALSE, providerSupplements, body);
     setStage(MALInvokeOperation.INVOKE_ACK_STAGE);
     return msg;
   }
@@ -62,7 +64,7 @@ public class CNESMALInvoke extends CNESMALInteraction implements MALInvoke {
   public MALMessage sendAcknowledgement(MALEncodedBody encodedBody) throws MALInteractionException, MALException {
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.INVOKE, 
-        MALInvokeOperation.INVOKE_ACK_STAGE, Boolean.FALSE, encodedBody);
+        MALInvokeOperation.INVOKE_ACK_STAGE, Boolean.FALSE, providerSupplements, encodedBody);
     setStage(MALInvokeOperation.INVOKE_ACK_STAGE);
     return msg;
   }
@@ -70,7 +72,7 @@ public class CNESMALInvoke extends CNESMALInteraction implements MALInvoke {
   public MALMessage sendResponse(Object... body) throws MALInteractionException, MALException {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.INVOKE, 
-        MALInvokeOperation.INVOKE_RESPONSE_STAGE, Boolean.FALSE, body);
+        MALInvokeOperation.INVOKE_RESPONSE_STAGE, Boolean.FALSE, providerSupplements, body);
     setStage(MALInvokeOperation.INVOKE_RESPONSE_STAGE);
     return msg;
   }
@@ -78,12 +80,12 @@ public class CNESMALInvoke extends CNESMALInteraction implements MALInvoke {
   public MALMessage sendResponse(MALEncodedBody encodedBody) throws MALInteractionException, MALException {
     checkResponseStage();
     MALMessage msg = sendResult(InteractionType.INVOKE, 
-        MALInvokeOperation.INVOKE_RESPONSE_STAGE, Boolean.FALSE, encodedBody);
+        MALInvokeOperation.INVOKE_RESPONSE_STAGE, Boolean.FALSE, providerSupplements, encodedBody);
     setStage(MALInvokeOperation.INVOKE_RESPONSE_STAGE);
     return msg;
   }
 
-  public MALMessage sendError(MALStandardError error) throws MALInteractionException, MALException {
+  public MALMessage sendError(MOErrorException error) throws MALInteractionException, MALException {
     if (error == null) throw new IllegalArgumentException("Null error");
     checkFailed();
     UOctet nextStage;
@@ -101,7 +103,7 @@ public class CNESMALInvoke extends CNESMALInteraction implements MALInvoke {
     }
     setStage(nextStage);
     MALMessage msg = sendResult(InteractionType.INVOKE, nextStage, Boolean.TRUE, 
-        error.getErrorNumber(), error.getExtraInformation());
+        providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setFailed(true);
     return msg;
   }

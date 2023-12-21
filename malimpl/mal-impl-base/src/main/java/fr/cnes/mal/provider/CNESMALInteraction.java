@@ -23,6 +23,7 @@
   *******************************************************************************/
 package fr.cnes.mal.provider;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
@@ -31,6 +32,7 @@ import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.provider.MALInteraction;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.Time;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
@@ -63,18 +65,27 @@ public class CNESMALInteraction implements MALInteraction {
   
   private Map qosProperties;
   
+  protected NamedValueList providerSupplements;
+  
   public CNESMALInteraction(MALMessageHeader header, 
       MessageSender messageSender, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
     this.header = header;
     this.messageSender = messageSender;
     this.request = request;
     this.operation = operation;
     this.authenticationId = authenticationId;
+    this.providerSupplements = providerSupplements;
     failed = false;
     qosProperties = request.getQoSProperties();
+    if (header.getSupplements() == null) {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "CNESMALInteraction null supplements, " + 
+            Arrays.toString(new Exception().getStackTrace()));
+    }
   }
   
   protected void setStage(UOctet stage) {
@@ -105,21 +116,19 @@ public class CNESMALInteraction implements MALInteraction {
       InteractionType interactionType, 
       UOctet interactionStage,
       Boolean isError,
+      NamedValueList supplements,
       Object... body) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALInteraction.sendResponse(" + 
           interactionType + ',' + interactionStage + ',' + isError + ')');
     MALMessage responseMsg = messageSender.createMessage(
-        authenticationId, request.getHeader().getURIFrom(),
-        new Time(System.currentTimeMillis()), request.getHeader().getQoSlevel(),
-        request.getHeader().getPriority(), request.getHeader().getDomain(),
-        request.getHeader().getNetworkZone(), request.getHeader().getSession(), 
-        request.getHeader().getSessionName(),
+        authenticationId, request.getHeader().getFrom(),
+        new Time(System.currentTimeMillis()),
         request.getHeader().getTransactionId(),
         isError,
         operation,
         interactionStage, 
-        qosProperties, body);
+        supplements, qosProperties, body);
     messageSender.sendMessage(responseMsg);
     return responseMsg;
   }
@@ -128,21 +137,19 @@ public class CNESMALInteraction implements MALInteraction {
       InteractionType interactionType, 
       UOctet interactionStage,
       Boolean isError,
+      NamedValueList supplements,
       MALEncodedBody encodedBody) throws MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "CNESMALInteraction.sendResponse(" + 
           interactionType + ',' + interactionStage + ',' + isError + ')');
     MALMessage responseMsg = messageSender.createMessage(
-        authenticationId, request.getHeader().getURIFrom(),
-        new Time(System.currentTimeMillis()), request.getHeader().getQoSlevel(),
-        request.getHeader().getPriority(), request.getHeader().getDomain(),
-        request.getHeader().getNetworkZone(), request.getHeader().getSession(), 
-        request.getHeader().getSessionName(),
+        authenticationId, request.getHeader().getFrom(),
+        new Time(System.currentTimeMillis()),
         request.getHeader().getTransactionId(),
         isError,
         operation,
         interactionStage, 
-        qosProperties, encodedBody);
+        supplements, qosProperties, encodedBody);
     messageSender.sendMessage(responseMsg);
     return responseMsg;
   }

@@ -23,22 +23,24 @@
   *******************************************************************************/
 package fr.cnes.mal;
 
+import java.util.Arrays;
 import java.util.Map;
 
+import org.ccsds.moims.mo.mal.MALArea;
+import org.ccsds.moims.mo.mal.MALContextFactory;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALService;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.Identifier;
-import org.ccsds.moims.mo.mal.structures.IdentifierList;
-import org.ccsds.moims.mo.mal.structures.QoSLevel;
-import org.ccsds.moims.mo.mal.structures.SessionType;
+import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.Time;
-import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
+import org.ccsds.moims.mo.mal.structures.UShort;
 import org.ccsds.moims.mo.mal.transport.MALEncodedBody;
 import org.ccsds.moims.mo.mal.transport.MALEndpoint;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
@@ -58,6 +60,9 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   private BindingManager manager;
   
   private MALService service;
+  
+  // the area can no longer be retrieved directly from the service
+  private MALArea serviceArea;
   
   private MALEndpoint endpoint;
   
@@ -80,16 +85,30 @@ public abstract class Binding implements MessageSender, MALMessageListener {
     super();
     this.manager = manager;
     this.service = service;
+    if (service != null) {
+      serviceArea = MALContextFactory.lookupArea(service.getAreaNumber(), service.getServiceVersion());
+      if (serviceArea == null) {
+        throw new IllegalArgumentException("service area is unknown: " + service.getAreaNumber());
+      }
+    }
     this.endpoint = endpoint;
     this.messageDispatcher = messageDispatcher;
     this.jmxName = jmxName;
     sentMessageCount = 0;
     receivedMessageCount = 0;
     pendingMessageCount = 0;
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "new Binding: " +
+          "service=" + service +
+          ", endpoint=" + endpoint.getLocalName());
   }
 
   public MALService getService() {
     return service;
+  }
+
+  public MALArea getServiceArea() {
+    return serviceArea;
   }
 
   public BindingManager getManager() {
@@ -113,7 +132,15 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   }
   
   public URI getURI() {
+    // MALEndpoint should use Identifier instead of URI
+    // cannot change the API because it must conform to MALBrokerBinding
     return endpoint.getURI();
+  }
+
+  public Identifier getDestinationId() {
+    // MALEndpoint should use Identifier instead of URI
+    // cannot change the API because it must conform to MALBrokerBinding
+    return new Identifier(endpoint.getURI().toString());
   }
   
   public void checkClosed() throws MALException {
@@ -134,6 +161,8 @@ public abstract class Binding implements MessageSender, MALMessageListener {
 
   public MALMessage sendMessage(MALMessage msg) throws MALInteractionException,
       MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "Binding.sendMessage(" + msg + ")");
     msg = manager.getMalContext().getAccessControl().check(msg);
     endpoint.sendMessage(msg);
     sentMessageCount++;
@@ -149,38 +178,86 @@ public abstract class Binding implements MessageSender, MALMessageListener {
     sentMessageCount += messages.length;
   }
 
-  public MALMessage createMessage(Blob authenticationId, URI uRITo,
-      Time timestamp, QoSLevel qoSlevel, UInteger priority,
-      IdentifierList domain, Identifier networkZone, SessionType session,
-      Identifier sessionName, Long transactionId, Boolean isErrorMessage,
-      MALOperation op, UOctet interactionStage, Map qosProperties,
+  public MALMessage createMessage(Blob authenticationId, Identifier uRITo,
+      Time timestamp, Long transactionId, Boolean isErrorMessage,
+      MALOperation op, UOctet interactionStage,
+      NamedValueList supplements, Map qosProperties,
       Object... body) throws MALException {
     return endpoint.createMessage(
-        authenticationId, uRITo,
-        timestamp, qoSlevel,
-        priority, domain,
-        networkZone, session, sessionName,
+        authenticationId, new URI(uRITo.getValue()),
+        timestamp, op.getInteractionType(), interactionStage,
         transactionId,
-        isErrorMessage,
-        op, interactionStage,
-        qosProperties, body);
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        isErrorMessage, supplements, qosProperties,
+        body);
   }
 
-  public MALMessage createMessage(Blob authenticationId, URI uriTo,
-      Time timestamp, QoSLevel qosLevel, UInteger priority,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, Long transactionId, Boolean isErrorMessage,
-      MALOperation op, UOctet interactionStage, Map qosProperties,
+  // It seems the new API does not use the MALOperation parameter
+  // TODO SL reorganize implementation
+  public MALMessage createMessage(
+      Blob authenticationId, Identifier uRITo,
+      Time timestamp, Long transactionId, Boolean isErrorMessage,
+      UShort area, UShort service, UShort operation, UOctet version,
+      InteractionType interactionType, UOctet interactionStage,
+      NamedValueList supplements, Map qosProperties,
+      Object... body) throws MALException {
+    return endpoint.createMessage(
+        authenticationId, new URI(uRITo.getValue()),
+        timestamp, interactionType, interactionStage,
+        transactionId,
+        area, service, operation, version,
+        isErrorMessage, supplements, qosProperties,
+        body);
+  }
+  
+  public MALMessage createMessage(Blob authenticationId, Identifier uriTo,
+      Time timestamp, Long transactionId, Boolean isErrorMessage,
+      MALOperation op, UOctet interactionStage,
+      NamedValueList supplements, Map qosProperties,
       MALEncodedBody encodedBody) throws MALException {
     return endpoint.createMessage(
-        authenticationId, uriTo,
-        new Time(System.currentTimeMillis()), qosLevel,
-        priority, domain,
-        networkZone, sessionType, sessionName,
+        authenticationId, new URI(uriTo.getValue()),
+        new Time(System.currentTimeMillis()),
+        op.getInteractionType(), interactionStage,
         transactionId,
-        Boolean.FALSE,
-        op, interactionStage,
-        qosProperties, encodedBody);
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        isErrorMessage, supplements, qosProperties,
+        encodedBody);
+  }
+
+  // It seems the new API does not use the MALOperation parameter
+  // TODO SL reorganize implementation
+  public MALMessage createMessage(Blob authenticationId, Identifier uriTo,
+      Time timestamp, Long transactionId, Boolean isErrorMessage,
+      UShort area, UShort service, UShort operation, UOctet version,
+      InteractionType interactionType, UOctet interactionStage,
+      NamedValueList supplements, Map qosProperties,
+      MALEncodedBody encodedBody) throws MALException {
+    return endpoint.createMessage(
+        authenticationId, new URI(uriTo.getValue()),
+        new Time(System.currentTimeMillis()),
+        interactionType, interactionStage,
+        transactionId,
+        area, service, operation, version,
+        isErrorMessage, supplements, qosProperties,
+        encodedBody);
+  }
+
+  protected static String messageHeaderToString(MALMessageHeader hdr) {
+    StringBuffer buf = new StringBuffer();
+    buf.append('(');
+    buf.append("from=").append(hdr.getFrom());
+    buf.append(", to=").append(hdr.getTo());
+    buf.append(", tid=").append(hdr.getTransactionId());
+    buf.append(", IP=").append(hdr.getInteractionType().toString());
+    buf.append('.').append(hdr.getInteractionStage());
+    buf.append(", op=").append(hdr.getServiceArea());
+    buf.append(':').append(hdr.getService());
+    buf.append(':').append(hdr.getOperation());
+    buf.append(')');
+    return buf.toString();
   }
   
   protected abstract MessageDeliveryTask createMessageDeliveryTask(MALMessage msg);
@@ -188,7 +265,12 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   public synchronized void onMessage(MALEndpoint sourceEndPoint, MALMessage msg) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "Binding.onMessage(" + 
-          msg.getHeader() + ',' + msg.getBody() + ')');
+          messageHeaderToString(msg.getHeader()) + ',' + msg.getBody() + ')');
+    if (msg.getHeader().getSupplements() == null) {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "Binding.onMessage null supplements, " +
+      Arrays.toString(new Exception("stack trace").getStackTrace()));
+    }
     MessageDeliveryTask task = createMessageDeliveryTask(msg);
     if (! closed) {
       try {
@@ -207,7 +289,7 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   synchronized void onHandledMessage(MALMessage msg) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "Binding.onHandledMessage(" +
-          msg.getHeader() + ')');
+          messageHeaderToString(msg.getHeader()) + ')');
     pendingMessageCount--;
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "nbMsgPending=" + pendingMessageCount);
@@ -216,6 +298,9 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   
   public void onMessages(MALEndpoint sourceEndpoint, MALMessage[] messages) {
     for (int i = 0; i < messages.length; i++) {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "Binding-" + endpoint + ".onMessages("
+          + sourceEndpoint + ',' + messages[i].getHeader().getInteractionType().toString() + ')');
       onMessage(sourceEndpoint, messages[i]);
     }
   }
@@ -234,7 +319,7 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   protected abstract void finalizeBinding() throws MALException;
   
   public void onTransmitError(MALEndpoint callingEndpoint,
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     try {
       handleTransmitError(header, standardError);
     } catch (MALException e) {
@@ -247,7 +332,7 @@ public abstract class Binding implements MessageSender, MALMessageListener {
   }
   
   protected abstract void handleTransmitError(MALMessageHeader header,
-      MALStandardError standardError) throws MALException;
+      MOErrorException standardError) throws MALException;
 
   public void setTransmitErrorListener(MALTransmitErrorListener transmitErrorListener)
       throws MALException {
@@ -283,9 +368,21 @@ public abstract class Binding implements MessageSender, MALMessageListener {
       // 2- wait for all the pending messages to be handled
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Wait for all the pending messages to be handled");
+      int lastPendingMessageCount = 0;
+      int staleCount = 0;
+      final int staleCountMax = 60;
+      pendingLoop:
       while (pendingMessageCount > 0) {
         if (logger.isLoggable(BasicLevel.DEBUG))
           logger.log(BasicLevel.DEBUG, "nbMsgPending=" + pendingMessageCount);
+        if (pendingMessageCount != lastPendingMessageCount) {
+          lastPendingMessageCount = pendingMessageCount;
+          staleCount = 0;
+        } else if (++staleCount >= staleCountMax) {
+          if (logger.isLoggable(BasicLevel.DEBUG))
+            logger.log(BasicLevel.DEBUG, Integer.toString(pendingMessageCount) + " messages are durably pending");
+          break pendingLoop;
+        }
         try {
           wait(500);
         } catch (InterruptedException e) {}

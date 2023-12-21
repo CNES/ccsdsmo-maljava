@@ -26,17 +26,21 @@ package fr.cnes.mal.provider;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.provider.MALPublishInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
 
 import fr.cnes.mal.CNESMALContext;
 import fr.cnes.mal.Interaction;
+import fr.cnes.mal.consumer.RegisterInteraction;
 
 public class AsyncPublishRegisterInteraction extends Interaction {
   
@@ -60,7 +64,14 @@ public class AsyncPublishRegisterInteraction extends Interaction {
     if (header.getInteractionType().getOrdinal() == 
       InteractionType._PUBSUB_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      PublishRegisterInteraction.checkStageTransition(getStage(), nextStage);
+      try {
+        PublishRegisterInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       setStatus(DONE);
       listener.publishRegisterAckReceived(header, qosProperties);
@@ -71,6 +82,28 @@ public class AsyncPublishRegisterInteraction extends Interaction {
 
   protected void onError(MALOperation operation, 
       MALMessageHeader header, MALErrorBody body, Map qosProperties) throws MALException {
-    listener.publishRegisterErrorReceived(header, body, qosProperties);
+    if (header.getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX) {
+      UOctet nextStage = header.getInteractionStage();
+      try {
+        PublishRegisterInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
+      setStage(nextStage);
+      setStatus(FAILED);
+      if (listener != null) {
+        listener.publishRegisterErrorReceived(header, body, qosProperties);
+      }
+    } else {
+      throw CNESMALContext.createException("Unexpected interaction type: "
+          + header.getInteractionType());
+    }
   }
 }

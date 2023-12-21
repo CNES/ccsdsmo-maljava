@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.UShort;
@@ -73,6 +73,7 @@ public class MessageDispatcher implements MALMessageListener {
   public void onMessage(MALEndpoint callingEndpoint, MALMessage msg) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher.onMessage(" + msg.getHeader() + ')');
+    System.out.println("DEBUG SL: " + "MessageDispatcher.onMessage(" + msg.getHeader() + ')');
     if (msg.getHeader().getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX) {
       switch (msg.getHeader().getInteractionStage().getValue()) {
       case MALPubSubOperation._REGISTER_STAGE:
@@ -113,18 +114,23 @@ public class MessageDispatcher implements MALMessageListener {
   private void deliverConsumerMessage(MALEndpoint callingEndpoint, MALMessage msg) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].deliverConsumerMessage(" + msg.getHeader() + ')');
+    System.out.println("DEBUG SL: " + "MessageDispatcher[" + endpoint.getURI() + "].deliverConsumerMessage(" + msg.getHeader() + ')');
     UShort area = msg.getHeader().getServiceArea();
     UShort service = msg.getHeader().getService();
-    UOctet version = msg.getHeader().getAreaVersion();
+    UOctet version = msg.getHeader().getServiceVersion();
     Binding consumer = consumers.get(new ServiceKey(area, service, version));
     if (consumer != null) {
+      System.out.println("DEBUG SL: " + "deliver message to " + callingEndpoint.getLocalName());
       consumer.onMessage(callingEndpoint, msg);
     } else {
       if (logger.isLoggable(BasicLevel.WARN))
         logger.log(BasicLevel.WARN, "Failed to dispatch to consumer " + endpoint.getURI() + " " +
             area + "::" + service + " : " + msg);
+      System.out.println("DEBUG SL: " + "Failed to dispatch to consumer " + endpoint.getURI() + " " +
+          area + "::" + service + " : " + msg);
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Not found in: " + consumers);
+      System.out.println("DEBUG SL: " + "Not found in: " + consumers);
     }
   }
 
@@ -133,7 +139,7 @@ public class MessageDispatcher implements MALMessageListener {
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].deliverProviderMessage(" + msg.getHeader() + ')');
     UShort area = msg.getHeader().getServiceArea();
     UShort service = msg.getHeader().getService();
-    UOctet version = msg.getHeader().getAreaVersion();
+    UOctet version = msg.getHeader().getServiceVersion();
     Binding provider = providers.get(new ServiceKey(area, service, version));
     if (provider != null) {
       provider.onMessage(callingEndpoint, msg);
@@ -149,6 +155,7 @@ public class MessageDispatcher implements MALMessageListener {
   private void deliverBrokerMessage(MALEndpoint callingEndpoint, MALMessage msg) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].deliverBrokerMessage(" + msg.getHeader() + ')');
+    System.out.println("DEBUG SL: " + "MessageDispatcher[" + endpoint.getURI() + "].deliverBrokerMessage(" + msg.getHeader() + ')');
     if (broker != null) {
       broker.onMessage(callingEndpoint, msg);
     } else {
@@ -160,11 +167,13 @@ public class MessageDispatcher implements MALMessageListener {
   public void addProvider(Binding provider) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].addProvider(" + 
-          provider.getService().getArea().getName() + "::" +
+          // can no longer find the area name?
+          // provider.getService().getArea().getName() + "::" +
+          provider.getService().getAreaNumber() + "::" +
           provider.getService().getName() + ')');
-    UShort area = provider.getService().getArea().getNumber();
-    UShort service = provider.getService().getNumber();
-    UOctet version = provider.getService().getArea().getVersion();
+    UShort area = provider.getService().getAreaNumber();
+    UShort service = provider.getService().getServiceNumber();
+    UOctet version = provider.getService().getServiceVersion();
     ServiceKey key = new ServiceKey(area, service, version);
     synchronized (providers) {
       if (providers.get(key) != null) {
@@ -177,29 +186,39 @@ public class MessageDispatcher implements MALMessageListener {
   
   public void removeProvider(Binding provider) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].removeProvider(" + 
-          provider.getService().getArea().getName() + "::" +
+      logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].removeProvider(" +
+          // can no longer find the area name?
+          // provider.getService().getArea().getName() + "::" +
+          provider.getService().getAreaNumber() + "::" + 
           provider.getService().getName() + ')');
-    UShort area = provider.getService().getArea().getNumber();
-    UShort service = provider.getService().getNumber();
-    UOctet version = provider.getService().getArea().getVersion();
+    UShort area = provider.getService().getAreaNumber();
+    UShort service = provider.getService().getServiceNumber();
+    UOctet version = provider.getService().getServiceVersion();
     ServiceKey key = new ServiceKey(area, service, version);
     providers.remove(key);
   }
   
   public void addConsumer(Binding consumer) throws MALException {
+    System.out.println("DEBUG SL: " + "check");
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].addConsumer(" + 
-          consumer.getService().getArea().getName() + "::" +
+          // can no longer find the area name?
+          // consumer.getService().getArea().getName() + "::" +
+          consumer.getService().getAreaNumber() + "::" + 
           consumer.getService().getName() + ')');
-    UShort area = consumer.getService().getArea().getNumber();
-    UShort service = consumer.getService().getNumber();
-    UOctet version = consumer.getService().getArea().getVersion();
+    System.out.println("DEBUG SL: " + "MessageDispatcher[" + endpoint.getURI() + "].addConsumer(" + 
+          consumer.getService().getAreaNumber() + "::" + 
+          consumer.getService().getName() + ')');
+    UShort area = consumer.getService().getAreaNumber();
+    UShort service = consumer.getService().getServiceNumber();
+    UOctet version = consumer.getService().getServiceVersion();
     ServiceKey key = new ServiceKey(area, service, version);
     synchronized (consumers) {
       if (consumers.get(key) != null) {
         throw CNESMALContext.createException("Already bound consumer: " + key);
       } else {
+        System.out.println("DEBUG SL: " + "register consumer " + consumer.getURIAsString()
+        + " with key " + area + ':' + service + ':' + version);
         consumers.put(key, consumer);
       }
     }
@@ -208,11 +227,13 @@ public class MessageDispatcher implements MALMessageListener {
   public void removeConsumer(Binding consumer) throws MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher[" + endpoint.getURI() + "].removeConsumer(" + 
-          consumer.getService().getArea().getName() + "::" +
+          // can no longer find the area name?
+          // consumer.getService().getArea().getName() + "::" +
+          consumer.getService().getAreaNumber() + "::" + 
           consumer.getService().getName() + ')');
-    UShort area = consumer.getService().getArea().getNumber();
-    UShort service = consumer.getService().getNumber();
-    UOctet version = consumer.getService().getArea().getVersion();
+    UShort area = consumer.getService().getAreaNumber();
+    UShort service = consumer.getService().getServiceNumber();
+    UOctet version = consumer.getService().getServiceVersion();
     ServiceKey key = new ServiceKey(area, service, version);
     consumers.remove(key);
   }
@@ -309,10 +330,10 @@ public class MessageDispatcher implements MALMessageListener {
   }
   
   private void deliverConsumerError(MALEndpoint callingEndpoint, 
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     UShort area = header.getServiceArea();
     UShort service = header.getService();
-    UOctet version = header.getAreaVersion();
+    UOctet version = header.getServiceVersion();
     Binding consumer = consumers.get(new ServiceKey(area, service, version));
     if (consumer != null) {
       consumer.onTransmitError(callingEndpoint, header, standardError, qosProperties);
@@ -326,10 +347,10 @@ public class MessageDispatcher implements MALMessageListener {
   }
   
   private void deliverProviderError(MALEndpoint callingEndpoint,
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     UShort area = header.getServiceArea();
     UShort service = header.getService();
-    UOctet version = header.getAreaVersion();
+    UOctet version = header.getServiceVersion();
     Binding provider = providers.get(new ServiceKey(area, service, version));
     if (provider != null) {
       provider.onTransmitError(callingEndpoint, header, standardError, qosProperties);
@@ -343,7 +364,7 @@ public class MessageDispatcher implements MALMessageListener {
   }
   
   private void deliverBrokerError(MALEndpoint callingEndpoint, 
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     if (broker != null) {
       broker.onTransmitError(callingEndpoint, header, standardError, qosProperties);
     } else {
@@ -353,7 +374,7 @@ public class MessageDispatcher implements MALMessageListener {
   }
 
   public void onTransmitError(MALEndpoint callingEndpoint,
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "MessageDispatcher.onTransmitError(" + header + ',' + standardError + ')');
     if (header.getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX) {

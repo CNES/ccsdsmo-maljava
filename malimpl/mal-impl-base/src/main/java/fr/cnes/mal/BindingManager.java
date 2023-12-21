@@ -237,37 +237,7 @@ public abstract class BindingManager<B extends Binding> {
   
   public static void checkTransport(MALTransport transport, 
       QoSLevel qosLevel, MALService service) throws MALException {
-    if (! transport.isSupportedQoSLevel(qosLevel)) {
-      throw new MALException("QoS level not supported: " + qosLevel);
-    }
-    if (service.getSendOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.SEND);
-    }
-    if (service.getSubmitOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.SUBMIT);
-    }
-    if (service.getRequestOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.REQUEST);
-    }
-    if (service.getInvokeOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.INVOKE);
-    }
-    if (service.getProgressOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.PROGRESS);
-    }
-    if (service.getPubSubOperations().length > 0) {
-      checkInteractionPattern(transport, InteractionType.PUBSUB);
-    }
-  }
-  
-  public static void checkInteractionPattern(MALTransport transport, InteractionType interactionType) throws MALException {
-    if (! transport.isSupportedInteractionType(interactionType)) {
-      // No error should be thrown because all IPs have to be supported except Pub/Sub in a native way.
-      // But even if Pub/Sub is not natively supported by the transport, it is supported at the MAL level.
-      // So Pub/Sub not supported doesn't mean that a consumer can't use a Pub/Sub operation.
-      // Nevertheless, the call to 'isSupportedInteractionType' is required by the MAL Blue Book prototyping tests.
-      // throw new MALException("Interaction pattern not supported: " + interactionType);
-    }
+    // this is no longer part of the MAL specification
   }
   
   public static String getProtocol(String uri) {

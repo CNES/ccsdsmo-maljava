@@ -32,16 +32,16 @@ import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.broker.MALBrokerBinding;
 import org.ccsds.moims.mo.mal.broker.MALBrokerHandler;
 import org.ccsds.moims.mo.mal.provider.MALInteraction;
+import org.ccsds.moims.mo.mal.structures.AttributeTypeList;
 import org.ccsds.moims.mo.mal.structures.Blob;
-import org.ccsds.moims.mo.mal.structures.EntityKey;
-import org.ccsds.moims.mo.mal.structures.EntityKeyList;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.Subscription;
 import org.ccsds.moims.mo.mal.structures.URI;
 import org.ccsds.moims.mo.mal.structures.UpdateHeaderList;
@@ -68,7 +68,7 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
   public final static Logger logger = fr.dyade.aaa.common.Debug
     .getLogger(CNESMALBrokerHandler.class.getName());
   
-  private Hashtable<URI, BrokerContext> brokerContexts;
+  private Hashtable<Identifier, BrokerContext> brokerContexts;
   
   private Blob authenticationId;
   
@@ -79,10 +79,10 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
       String jmxName) {
     this.authenticationId = authenticationId;
     this.jmxName = jmxName;
-    brokerContexts = new Hashtable<URI, CNESMALBrokerHandler.BrokerContext>();
+    brokerContexts = new Hashtable<Identifier, CNESMALBrokerHandler.BrokerContext>();
   }
   
-  private BrokerContext getBrokerContext(URI brokerUri) throws MALException {
+  private BrokerContext getBrokerContext(Identifier brokerUri) throws MALException {
     BrokerContext brokerContext = (BrokerContext) brokerContexts.get(brokerUri);
     if (brokerContext == null) {
       throw new MALException("Unknown broker URI: " + brokerUri);
@@ -107,7 +107,14 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
         if (logger.isLoggable(BasicLevel.WARN))
           logger.log(BasicLevel.WARN, "", exc);
       }
-      brokerContexts.put(brokerBinding.getURI(), 
+      // the binding should distinguish the name and the URI
+      Identifier destinationId = null;
+      if (brokerBinding instanceof CNESMALBrokerBinding) {
+        destinationId = ((CNESMALBrokerBinding) brokerBinding).getDestinationId();
+      } else {
+        destinationId = new Identifier(brokerBinding.getURI().getValue());
+      }
+      brokerContexts.put(destinationId, 
           new BrokerContext(brokerBinding, new BrokerAdapter(broker, authenticationId)));
     }
   }
@@ -127,42 +134,33 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
   }
 
   public void handlePublishRegister(MALInteraction interaction,
-      MALPublishRegisterBody body) throws MALException {
+      MALPublishRegisterBody body) throws MALException, MALInteractionException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALBrokerHandler.publishRegister(" + interaction + ',' + 
+          body + ')');
     Enumeration brokerContextEnum = brokerContexts.elements();
     while (brokerContextEnum.hasMoreElements()) {
       BrokerContext ctx = (BrokerContext) brokerContextEnum.nextElement();
-      EntityKeyList entityKeys = body.getEntityKeyList();
+      IdentifierList subKeys = body.getSubscriptionKeyNames();
+      AttributeTypeList keyTypes = body.getSubscriptionKeyTypes();
       BrokerAdapter brokerAdapter = ctx.getBrokerAdapter();
-      brokerAdapter.handlePublishRegister(interaction.getMessageHeader(), entityKeys);
+      brokerAdapter.handlePublishRegister(interaction.getMessageHeader(), subKeys, keyTypes);
     }
   }
 
   public void handlePublish(MALInteraction interaction, MALPublishBody body) 
       throws MALInteractionException, MALException {
-    UpdateHeaderList updateHeaderList = body.getUpdateHeaderList();
-    List[] updateLists = body.getUpdateLists();
-    
     MALMessageHeader header = interaction.getMessageHeader();
-    BrokerContext brokerContext = getBrokerContext(interaction.getMessageHeader().getURITo());
+    BrokerContext brokerContext = getBrokerContext(interaction.getMessageHeader().getTo());
     
-    Identifier sessionName = header.getSessionName();
-    String sessionNameS = null;
-    if (sessionName != null) {
-      sessionNameS = sessionName.getValue();
-    }
-
     BrokerPublication publication = new BrokerPublication(
-      header.getURIFrom(),
-      header.getDomain(),
-      header.getNetworkZone(),
-      header.getSession(),
-      header.getSessionName(),
-      updateHeaderList,
-      updateLists,
+      header.getFrom(),
+      body.getUpdateHeader(),
+      body.getUpdateObjects(),
       header.getServiceArea(),
       header.getService(),
       header.getOperation(),
-      header.getAreaVersion());
+      header.getServiceVersion());
     
     Enumeration brokerContextEnum = brokerContexts.elements();
     while (brokerContextEnum.hasMoreElements()) {
@@ -172,56 +170,47 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
       try {
         notifications = ctx.getBrokerAdapter().publish(publication);
       } catch (UnknownPublisherException upe) {
-        MALStandardError error = new MALStandardError(MALHelper.INTERNAL_ERROR_NUMBER, null);
-        brokerContext.getBinding().sendPublishError(
+        MOErrorException error = new MOErrorException(MALHelper.INTERNAL_ERROR_NUMBER, null);
+        // TODO SL change to new API v2
+        ((CNESMALBrokerBinding)brokerContext.getBinding()).sendPublishError(
             interaction.getOperation(), 
-            header.getURIFrom(), 
+            header.getFrom(), 
             header.getTransactionId(), 
-            header.getDomain(), header.getNetworkZone(), 
-            header.getSession(), header.getSessionName(), 
-            header.getQoSlevel(),
+            // TODO SL missing supplements
+            new NamedValueList(),
             interaction.getQoSProperties(),
-            header.getPriority(),
             error);
         return;
       } catch (UnknownEntityException uee) {
+        // TODO SL pas sur que cela existe encore
         UpdateCheckReport report = uee.getReport();
-        EntityKeyList unknownEntityKeyList = new EntityKeyList();
-        UpdateHeaderList failedUpdateHeaders = report.getFailedUpdateHeaders();
-        for (int i = 0; i < failedUpdateHeaders.size(); i++) {
-          EntityKey key = failedUpdateHeaders.get(i).getKey();
-          unknownEntityKeyList.add(key);
-        }
-        brokerContext.getBinding().sendPublishError(
+        ((CNESMALBrokerBinding)brokerContext.getBinding()).sendPublishError(
             interaction.getOperation(),
-            header.getURIFrom(), 
-            report.getTransactionId(), 
-            header.getDomain(), header.getNetworkZone(), 
-            header.getSession(), header.getSessionName(), 
-            report.getQos(),
+            header.getFrom(), 
+            header.getTransactionId(), // TODO SL why not header.getTransactionId()?
+            // TODO SL missing supplements
+            new NamedValueList(),
             interaction.getQoSProperties(),
-            report.getPriority(),
-            new MALStandardError(MALHelper.UNKNOWN_ERROR_NUMBER, unknownEntityKeyList));
+            new MOErrorException(MALHelper.UNKNOWN_ERROR_NUMBER, null));
         return;
       }
+      
+      if (notifications == null || notifications.length == 0)
+        return;
       
       for (int i = 0; i < notifications.length; i++) {
         List<BrokerSubscriptionUpdate> subscriptionUpdateList = notifications[i].getSubscriptionUpdateList();
         for (BrokerSubscriptionUpdate subscriptionUpdate : subscriptionUpdateList) {
-          ctx.getBinding().sendNotify(
+          ((CNESMALBrokerBinding)ctx.getBinding()).sendNotify(
             interaction.getOperation(),
             notifications[i].getSubscriberUri(),
             notifications[i].getTransactionId(),
-            notifications[i].getDomain(),
-            notifications[i].getNetworkZone(),
-            notifications[i].getSessionType(),
-            notifications[i].getSessionName(),
-            notifications[i].getQosLevel(),
+            new NamedValueList(),
+            // notifications[i].getSupplements(),
             notifications[i].getQosProperties(),
-            notifications[i].getPriority(),
             subscriptionUpdate.getSubscriptionId(),
-            subscriptionUpdate.getUpdateHeaders(),
-            subscriptionUpdate.getUpdateLists());
+            subscriptionUpdate.getUpdateHeader(),
+            subscriptionUpdate.getUpdateObjects());
         }
       }
     }
@@ -239,8 +228,8 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
 
   public void handleDeregister(MALInteraction interaction,
       MALDeregisterBody body) throws MALException {
-    IdentifierList subscriptionIds = body.getIdentifierList();
-    BrokerAdapter brokerAdapter = getBrokerContext(interaction.getMessageHeader().getURITo()).getBrokerAdapter();
+    IdentifierList subscriptionIds = body.getSubscriptionIds();
+    BrokerAdapter brokerAdapter = getBrokerContext(interaction.getMessageHeader().getTo()).getBrokerAdapter();
     brokerAdapter.handleDeregister(interaction.getMessageHeader(), subscriptionIds);
   }
 
@@ -268,7 +257,7 @@ public class CNESMALBrokerHandler implements MALBrokerHandler, MALTransmitErrorL
   }
 
   public void onTransmitError(MALEndpoint callingEndpoint,
-      MALMessageHeader header, MALStandardError standardError, Map qosProperties) {
+      MALMessageHeader header, MOErrorException standardError, Map qosProperties) {
     if (header.getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX &&
         header.getInteractionStage().getValue() == MALPubSubOperation._NOTIFY_STAGE) {
       if (standardError.getErrorNumber().getValue() == MALHelper._DESTINATION_UNKNOWN_ERROR_NUMBER) {

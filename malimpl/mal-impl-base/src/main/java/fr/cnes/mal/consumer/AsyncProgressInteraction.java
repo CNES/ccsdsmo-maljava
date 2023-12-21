@@ -26,18 +26,27 @@ package fr.cnes.mal.consumer;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALProgressOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.consumer.MALInteractionListener;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
+import org.objectweb.util.monolog.api.BasicLevel;
+import org.objectweb.util.monolog.api.Logger;
 
 import fr.cnes.mal.CNESMALContext;
 import fr.cnes.mal.Interaction;
 
 public class AsyncProgressInteraction extends Interaction {
+
+  public final static Logger logger = fr.dyade.aaa.common.Debug
+    .getLogger(AsyncProgressInteraction.class.getName());
   
   private MALInteractionListener listener;
   
@@ -61,7 +70,14 @@ public class AsyncProgressInteraction extends Interaction {
   protected void onMessage(MALOperation op, 
       MALMessageHeader header, MALMessageBody body, Map qosProperties) throws MALException {
     if (header.getInteractionType().getOrdinal() == InteractionType._PROGRESS_INDEX) {
-      ProgressInteraction.checkStageTransition(getStage(), header.getInteractionStage());
+      try {
+        ProgressInteraction.checkStageTransition(getStage(), header.getInteractionStage());
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       switch (header.getInteractionStage().getValue()) {
       case MALProgressOperation._PROGRESS_ACK_STAGE:
         setStage(MALProgressOperation.PROGRESS_ACK_STAGE);
@@ -86,9 +102,26 @@ public class AsyncProgressInteraction extends Interaction {
 
   protected void onError(MALOperation operation, 
       MALMessageHeader header, MALErrorBody body, Map qosProperties) throws MALException {
+
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG,
+             "AsyncProgressInteraction.onError: " + header.getInteractionType() + "." + header.getInteractionStage());
+
     if (header.getInteractionType().getOrdinal() == InteractionType._PROGRESS_INDEX) {
-      ProgressInteraction.checkStageTransition(getStage(), header.getInteractionStage());
-      switch (header.getInteractionStage().getValue()) {
+      UOctet nextStage = header.getInteractionStage();
+      try {
+        ProgressInteraction.checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
+      switch (nextStage.getValue()) {
       case MALProgressOperation._PROGRESS_ACK_STAGE:
         setStage(MALProgressOperation.PROGRESS_ACK_STAGE);
         setStatus(FAILED);

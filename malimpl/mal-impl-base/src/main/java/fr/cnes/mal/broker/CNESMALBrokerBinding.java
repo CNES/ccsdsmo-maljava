@@ -35,18 +35,21 @@ import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
 import org.ccsds.moims.mo.mal.MALService;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.broker.MALBrokerBinding;
 import org.ccsds.moims.mo.mal.structures.Blob;
-import org.ccsds.moims.mo.mal.structures.EntityKeyList;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.Time;
 import org.ccsds.moims.mo.mal.structures.UInteger;
+import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
+import org.ccsds.moims.mo.mal.structures.UShort;
+import org.ccsds.moims.mo.mal.structures.UpdateHeader;
 import org.ccsds.moims.mo.mal.structures.UpdateHeaderList;
 import org.ccsds.moims.mo.mal.transport.MALDeregisterBody;
 import org.ccsds.moims.mo.mal.transport.MALEndpoint;
@@ -86,7 +89,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
    * Ensures mono-threaded running for a given
    * publisher/subscriber.
    */
-  private Vector<URI> runningTransactions;
+  private Vector<Identifier> runningTransactions;
   
   public CNESMALBrokerBinding(
       CNESMALBrokerManager brokerManager,
@@ -101,11 +104,11 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
     this.authenticationId = authenticationId;
     this.defaultQoSProperties = defaultQoSProperties;
     messageBuffer = new Vector<MALMessage>();
-    runningTransactions = new Vector<URI>();
+    runningTransactions = new Vector<Identifier>();
   }
   
   protected void finalizeBinding() throws MALException {
-    broker.removeBinding(getURI());
+    broker.removeBinding(getDestinationId());
   }
   
   public Blob getAuthenticationId() {
@@ -113,33 +116,24 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
   }
 
   private void sendPublishError(
-      URI uriTo,
+      Identifier uriTo,
       MALPubSubOperation op, 
-      IdentifierList domain,
-      Identifier networkZone,
-      SessionType sessionType,
-      Identifier sessionName,
-      QoSLevel publishQos,
+      NamedValueList supplements,
       Map publishQosProps,
-      UInteger publishPriority,
-      EntityKeyList unknownEntityKeyList,
+      // TODO SL removed parameter
+      // assume it is only used locally with a null value
+      // EntityKeyList unknownEntityKeyList,
       Long tid) throws MALInteractionException, MALException {
     MALMessage msg = createMessage(
         authenticationId, uriTo,
         new Time(System.currentTimeMillis()), 
-        publishQos,
-        publishPriority, 
-        domain,
-        networkZone, 
-        sessionType, 
-        sessionName,
         tid,
         Boolean.TRUE,
         op, 
         MALPubSubOperation.PUBLISH_STAGE,
-        publishQosProps,
+        supplements, publishQosProps,
         MALHelper.UNKNOWN_ERROR_NUMBER,
-        unknownEntityKeyList);
+        null);
     sendMessage(msg);
   }
 
@@ -149,9 +143,10 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
       super(msg, CNESMALBrokerBinding.this);
     }
     
-    private void replyError(MALStandardError stdError) throws MALInteractionException, MALException {
+    private void replyError(MOErrorException stdError) throws MALInteractionException, MALException {
       MALMessage msg = getMessage();
-      MALArea area = MALContextFactory.lookupArea(msg.getHeader().getServiceArea(), msg.getHeader().getAreaVersion());
+      // TODO SL move back service to area version
+      MALArea area = MALContextFactory.lookupArea(msg.getHeader().getServiceArea(), msg.getHeader().getServiceVersion());
       MALService service = area.getServiceByNumber(
           msg.getHeader().getService());
       MALOperation operation = service.getOperationByNumber(msg.getHeader().getOperation());
@@ -161,23 +156,16 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
       case InteractionType._PUBSUB_INDEX:
         if (header.getInteractionStage().getValue() == MALPubSubOperation._REGISTER_STAGE) {
           CNESMALRegister register = new CNESMALRegister(header,
-              CNESMALBrokerBinding.this, msg, operation, authenticationId);
+              CNESMALBrokerBinding.this, msg, operation, authenticationId, header.getSupplements());
           register.sendError(stdError);
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._DEREGISTER_STAGE) {
           CNESMALDeregister deregister = new CNESMALDeregister(header,
-              CNESMALBrokerBinding.this, msg, operation, authenticationId);
+              CNESMALBrokerBinding.this, msg, operation, authenticationId, header.getSupplements());
           deregister.sendError(stdError);
         }  else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_STAGE) {
-          sendPublishError(header.getURIFrom(), 
+          sendPublishError(header.getFrom(), 
               (MALPubSubOperation) operation, 
-              header.getDomain(), 
-              header.getNetworkZone(),
-              header.getSession(), 
-              header.getSessionName(), 
-              header.getQoSlevel(), 
-              msg.getQoSProperties(), 
-              header.getPriority(),
-              null,
+              header.getSupplements(), msg.getQoSProperties(), 
               header.getTransactionId());
         } else {
           throw CNESMALContext.createException("Unexpected PUBSUB stage: " + header.getInteractionStage());
@@ -189,12 +177,12 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
     }
     
     @Override
-    protected void onDeliveryError(MALStandardError error) throws MALInteractionException, MALException {
+    protected void onDeliveryError(MOErrorException error) throws MALInteractionException, MALException {
       replyError(error);
     }
     
     public void finalizeTask() {
-      URI from = getMessage().getHeader().getURIFrom();
+      Identifier from = getMessage().getHeader().getFrom();
       if (from != null) {
         runningTransactions.remove(from);
       }
@@ -204,7 +192,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
     protected void deliverMessage() throws MALInteractionException, MALException {
       MALMessage msg = getMessage();
       MALArea messageArea = MALContextFactory.lookupArea(msg.getHeader()
-          .getServiceArea(), msg.getHeader().getAreaVersion());
+          .getServiceArea(), msg.getHeader().getServiceVersion());
       MALService messageService = messageArea.getServiceByNumber(msg
           .getHeader().getService());
       MALOperation messageOperation = messageService.getOperationByNumber(msg
@@ -221,7 +209,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
         if (header.getInteractionStage().getValue() == MALPubSubOperation._REGISTER_STAGE) {
           CNESMALRegister register = new CNESMALRegister(header,
               CNESMALBrokerBinding.this, msg, messageOperation,
-              authenticationId);
+              authenticationId, header.getSupplements());
           MALRegisterBody body = (MALRegisterBody) msg.getBody();
           try {
             broker.getHandler().handleRegister(register, body);
@@ -234,7 +222,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._DEREGISTER_STAGE) {
           CNESMALDeregister deregister = new CNESMALDeregister(header,
               CNESMALBrokerBinding.this, msg, messageOperation,
-              authenticationId);
+              authenticationId, header.getSupplements());
           MALDeregisterBody body = (MALDeregisterBody) msg.getBody();
           try {
             broker.getHandler().handleDeregister(deregister, body);
@@ -251,7 +239,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
           } else {
             CNESMALPublish interaction = new CNESMALPublish(header,
                 CNESMALBrokerBinding.this, msg, messageOperation,
-                authenticationId);
+                authenticationId, header.getSupplements());
             MALPublishBody body = (MALPublishBody) msg.getBody();
             try {
               broker.getHandler().handlePublish(interaction, body);
@@ -264,7 +252,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_REGISTER_STAGE) {
           CNESMALPublishRegister register = new CNESMALPublishRegister(header,
               CNESMALBrokerBinding.this, msg, messageOperation,
-              authenticationId);
+              authenticationId, header.getSupplements());
           MALPublishRegisterBody body = (MALPublishRegisterBody) msg.getBody();
           try {
             broker.getHandler().handlePublishRegister(register, body);
@@ -277,7 +265,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
         } else if (header.getInteractionStage().getValue() == MALPubSubOperation._PUBLISH_DEREGISTER_STAGE) {
           CNESMALPublishDeregister deregister = new CNESMALPublishDeregister(
               header, CNESMALBrokerBinding.this, msg, messageOperation,
-              authenticationId);
+              authenticationId, header.getSupplements());
           try {
             broker.getHandler().handlePublishDeregister(deregister);
             deregister.sendAcknowledgement();
@@ -294,103 +282,221 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
     }
 
     public boolean runnable() {
-      URI from = getMessage().getHeader().getURIFrom();
+      Identifier from = getMessage().getHeader().getFrom();
       int index = runningTransactions.indexOf(from);
       return (index == -1);
     }
 
     public void init() {
-      URI from = getMessage().getHeader().getURIFrom();
+      Identifier from = getMessage().getHeader().getFrom();
       if (from != null) {
         runningTransactions.add(from);
       }
     }
   }
 
+  // implementation of the MALBrokerBinding interface
+  // probably deprecated
+  public MALMessage sendNotify(
+      MALOperation op, URI subscriber,
+      Long transactionId, IdentifierList domainId,
+      Identifier networkZone, SessionType sessionType,
+      Identifier sessionName, QoSLevel notifyQos,
+      Map notifyQosProps, UInteger notifyPriority,
+      Identifier subscriptionId,
+      UpdateHeader updateHeader,
+      Object... updateObjects)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    return sendNotify(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        subscriber, transactionId, domainId,
+        notifyQosProps, subscriptionId, updateHeader, updateObjects);
+  }
+
+  public MALMessage sendNotify(UShort area, UShort service, UShort operation,
+                               UOctet version, URI subscriber,
+                               Long transactionId, IdentifierList domainId,
+                               Map notifyQosProps, Identifier subscriptionId,
+                               NamedValueList supplements,
+                               UpdateHeader updateHeader,
+                               Object... updateObjects) throws IllegalArgumentException,
+                                                        MALInteractionException,
+                                                        MALException {
+    return sendNotify(area, service, operation, version,
+        new Identifier(subscriber.getValue()), transactionId, domainId,
+        notifyQosProps, subscriptionId, supplements, updateHeader, updateObjects);
+  }
+
+  // implementation of the MALBrokerBinding interface
+  public MALMessage sendNotify(
+      UShort area, UShort service, UShort operation, UOctet version,
+      Identifier subscriber, Long transactionId, IdentifierList domainId,
+      Map notifyQosProps, Identifier subscriptionId,
+      NamedValueList supplements,
+      UpdateHeader updateHeader,
+      Object... updateObjects)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    return sendNotify(area, service, operation, version, subscriber, transactionId,
+        supplements, notifyQosProps, subscriptionId, updateHeader, updateObjects);
+  }
+
+  public MALMessage sendNotify(MALOperation op, URI subscriber,
+                               Long transactionId, IdentifierList domainId,
+                               Identifier networkZone, SessionType sessionType,
+                               Identifier sessionName, QoSLevel notifyQos,
+                               Map notifyQosProps, UInteger notifyPriority,
+                               Identifier subscriptionId,
+                               NamedValueList supplements,
+                               UpdateHeader updateHeader,
+                               Object... updateObjects) throws IllegalArgumentException,
+                                                        MALInteractionException,
+                                                        MALException {
+    if (op == null) throw new IllegalArgumentException("Null operation");
+    return sendNotify(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        new Identifier(subscriber.getValue()), transactionId, supplements, notifyQosProps,
+        subscriptionId, updateHeader, updateObjects);
+  }
+
+  // TODO SL reorganize implementation
   public MALMessage sendNotify(
       MALOperation op,
-      URI subscriber, 
-      Long transactionId, 
-      IdentifierList domainId,
-      Identifier networkZone, 
-      SessionType sessionType, Identifier sessionName,
-      QoSLevel notifyQos, Map notifyQosProps, 
-      UInteger notifyPriority,
+      Identifier subscriber, 
+      Long transactionId,
+      NamedValueList supplements, Map notifyQosProps, 
       Identifier subscriptionId,
-      UpdateHeaderList updateHeaderList,
-      List... updateLists)
-      throws MALException {
+      UpdateHeader updateHeader,
+      Object... updateObjects)
+          throws IllegalArgumentException, MALInteractionException, MALException {
     if (op == null) throw new IllegalArgumentException("Null operation");
+    return sendNotify(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        subscriber, transactionId, supplements, notifyQosProps,
+        subscriptionId, updateHeader, updateObjects);
+  }
+  
+  public MALMessage sendNotify(
+      UShort area, UShort service, UShort operation, UOctet version,
+      Identifier subscriber, Long transactionId,
+      NamedValueList supplements, Map notifyQosProps,
+      Identifier subscriptionId,
+      UpdateHeader updateHeader,
+      Object... updateObjects)
+          throws IllegalArgumentException, MALInteractionException, MALException {
     if (subscriber == null) throw new IllegalArgumentException("Null subscriber URI");
     if (transactionId == null) throw new IllegalArgumentException("Null transaction id");
-    if (domainId == null) throw new IllegalArgumentException("Null domain id");
-    if (networkZone == null) throw new IllegalArgumentException("Null network zone");
-    if (sessionType == null) throw new IllegalArgumentException("Null session type");
-    if (sessionName == null) throw new IllegalArgumentException("Null session name");
-    if (notifyQos == null) throw new IllegalArgumentException("Null QoS");
-    if (notifyPriority == null) throw new IllegalArgumentException("Null priority");
     if (subscriptionId == null) throw new IllegalArgumentException("Null subscription id");
-    if (updateHeaderList == null) throw new IllegalArgumentException("Null UpdateHeaderList");
-    Object[] bodyElements = new Object[updateLists.length + 2];
-    System.arraycopy(updateLists, 0, bodyElements, 2, updateLists.length);
+    if (updateHeader == null) throw new IllegalArgumentException("Null UpdateHeader");
+    Object[] bodyElements = new Object[updateObjects.length + 2];
+    System.arraycopy(updateObjects, 0, bodyElements, 2, updateObjects.length);
     bodyElements[0] = subscriptionId;
-    bodyElements[1] = updateHeaderList;
+    bodyElements[1] = updateHeader;
     MALMessage notifyMsg = createMessage(
         authenticationId,
         subscriber,
         new Time(System.currentTimeMillis()), 
-        notifyQos,
-        notifyPriority, 
-        domainId,
-        networkZone, 
-        sessionType, 
-        sessionName,        
         transactionId, 
         Boolean.FALSE,
-        op,
-        MALPubSubOperation.NOTIFY_STAGE, 
+        area, service, operation, version,
+        InteractionType.PUBSUB, MALPubSubOperation.NOTIFY_STAGE, 
+        supplements,
         notifyQosProps,
         bodyElements);
     messageBuffer.addElement(notifyMsg);
     return notifyMsg;
   }
 
+  // implementation of the MALBrokerBinding interface
+  public MALMessage sendNotifyError(
+      UShort area, UShort service,
+      UShort operation, UOctet version,
+      Identifier subscriber, Long transactionId,
+      IdentifierList domainId,
+      Identifier networkZone,
+      SessionType sessionType,
+      Identifier sessionName, QoSLevel notifyQos,
+      Map notifyQosProps, UInteger notifyPriority,
+      MOErrorException error)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    // TODO SL no supplements field?
+    return sendNotifyError(area, service, operation, version, subscriber, transactionId,
+        new NamedValueList(), notifyQosProps, error);
+  }
+
+  public MALMessage sendNotifyError(MALOperation op, URI subscriber,
+                                    Long transactionId, IdentifierList domainId,
+                                    Identifier networkZone,
+                                    SessionType sessionType,
+                                    Identifier sessionName, QoSLevel notifyQos,
+                                    Map notifyQosProps, UInteger notifyPriority,
+                                    MOErrorException error,
+                                    NamedValueList supplements) throws IllegalArgumentException,
+                                                                MALInteractionException,
+                                                                MALException {
+    return sendNotifyError(op, new Identifier(subscriber.getValue()), transactionId,
+        supplements, notifyQosProps, error);
+  }
+
+  // TODO SL reorganize implementation
   public MALMessage sendNotifyError(
       MALOperation op,
-      URI subscriber,
-      Long transactionId, IdentifierList domainId,
-      Identifier networkZone, SessionType sessionType, Identifier sessionName,
-      QoSLevel notifyQos, Map notifyQosProps, UInteger notifyPriority,
-      MALStandardError error)
-      throws MALException {
+      Identifier subscriber,
+      Long transactionId,
+      NamedValueList supplements, Map notifyQosProps,
+      MOErrorException error)
+          throws IllegalArgumentException, MALInteractionException, MALException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "CNESMALBrokerBinding.sendNotifyError(" + op + ',' +
-          domainId + ',' + networkZone + ',' + notifyPriority + ')');
+      logger.log(BasicLevel.DEBUG, "CNESMALBrokerBinding.sendNotifyError(" + op + ',' + ')');
     if (op == null) throw new IllegalArgumentException("Null operation");
+    return sendNotifyError(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        subscriber, transactionId, supplements, notifyQosProps,
+        error);
+  }
+
+  public MALMessage sendNotifyError(UShort area, UShort service,
+                                    UShort operation, UOctet version,
+                                    URI subscriber, Long transactionId,
+                                    IdentifierList domainId,
+                                    Identifier networkZone,
+                                    SessionType sessionType,
+                                    Identifier sessionName, QoSLevel notifyQos,
+                                    Map notifyQosProps, UInteger notifyPriority,
+                                    MOErrorException error,
+                                    NamedValueList supplements) throws IllegalArgumentException,
+                                                                MALInteractionException,
+                                                                MALException {
+    return sendNotifyError(area, service, operation, version,
+        new Identifier(subscriber.getValue()), transactionId,
+        supplements, notifyQosProps, error);
+  }
+
+  public MALMessage sendNotifyError(
+      UShort area, UShort service,
+      UShort operation, UOctet version,
+      Identifier subscriber, Long transactionId,
+      NamedValueList supplements, Map notifyQosProps,
+      MOErrorException error)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALBrokerBinding.sendNotifyError(" +
+          area + ':' + service + ':' + operation + ',' + ')');
     if (subscriber == null) throw new IllegalArgumentException("Null subscriber URI");
     if (transactionId == null) throw new IllegalArgumentException("Null transaction id");
-    if (domainId == null) throw new IllegalArgumentException("Null domain id");
-    if (networkZone == null) throw new IllegalArgumentException("Null network zone");
-    if (sessionType == null) throw new IllegalArgumentException("Null session type");
-    if (sessionName == null) throw new IllegalArgumentException("Null session name");
-    if (notifyQos == null) throw new IllegalArgumentException("Null QoS");
-    if (notifyPriority == null) throw new IllegalArgumentException("Null priority");
     if (error == null) throw new IllegalArgumentException("Null error");
     MALMessage notifyMsg = createMessage(
         authenticationId,
         subscriber,
         new Time(System.currentTimeMillis()), 
-        notifyQos,
-        notifyPriority, 
-        domainId,
-        networkZone, 
-        sessionType, 
-        sessionName, 
         transactionId,
         Boolean.TRUE,
-        op,
-        MALPubSubOperation.NOTIFY_STAGE,
-        notifyQosProps,
+        area, service, operation, version,
+        InteractionType.PUBSUB, MALPubSubOperation.NOTIFY_STAGE,
+        supplements, notifyQosProps,
         error.getErrorNumber(),
         error.getExtraInformation());
     messageBuffer.addElement(notifyMsg);
@@ -408,37 +514,93 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
     }
   }
 
+  // implementation of the MALBrokerBinding interface
   public MALMessage sendPublishError(
       MALOperation op, URI publisher,
-      Long transactionId, IdentifierList domainId,
-      Identifier networkZone, SessionType sessionType, Identifier sessionName,
-      QoSLevel qos, Map qosProps, UInteger priority,
-      MALStandardError error) throws MALInteractionException, MALException {
+      Long transactionId,
+      IdentifierList domainId,
+      Identifier networkZone,
+      SessionType sessionType,
+      Identifier sessionName, QoSLevel qos,
+      Map qosProps, UInteger priority,
+      MOErrorException error,
+      NamedValueList supplements)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    return sendPublishError(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        publisher, transactionId, domainId, networkZone, sessionType, sessionName, qos,
+        qosProps, priority, error, supplements);
+  }
+
+  public MALMessage sendPublishError(UShort area, UShort service,
+                                     UShort operation, UOctet version,
+                                     URI publisher, Long transactionId,
+                                     IdentifierList domainId,
+                                     Identifier networkZone,
+                                     SessionType sessionType,
+                                     Identifier sessionName, QoSLevel qos,
+                                     Map qosProps, UInteger priority,
+                                     MOErrorException error,
+                                     NamedValueList supplements) throws IllegalArgumentException,
+                                                                 MALInteractionException,
+                                                                 MALException {
+    return sendPublishError(area, service, operation, version,
+        new Identifier(publisher.getValue()), transactionId,
+        domainId, networkZone, sessionType, sessionName, qos,
+        qosProps, priority, error, supplements);
+  }
+
+  // implementation of the MALBrokerBinding interface
+  public MALMessage sendPublishError(
+      UShort area, UShort service,
+      UShort operation, UOctet version,
+      Identifier publisher, Long transactionId,
+      IdentifierList domainId,
+      Identifier networkZone,
+      SessionType sessionType,
+      Identifier sessionName, QoSLevel qos,
+      Map qosProps, UInteger priority,
+      MOErrorException error,
+      NamedValueList supplements)
+          throws IllegalArgumentException, MALInteractionException, MALException {
+    return sendPublishError(area, service, operation, version, publisher, transactionId,
+        supplements, qosProps, error);
+  }
+
+  // TODO SL reorganize implementation
+  public MALMessage sendPublishError(
+      MALOperation op, Identifier publisher,
+      Long transactionId, 
+      NamedValueList supplements, Map qosProps,
+      MOErrorException error) throws MALInteractionException, MALException {
     if (op == null) throw new IllegalArgumentException("Null operation");
+    return sendPublishError(
+        op.getServiceKey().getAreaNumber(), op.getServiceKey().getServiceNumber(),
+        op.getNumber(), op.getServiceKey().getAreaVersion(),
+        publisher, transactionId, supplements, qosProps,
+        error);
+  }
+  
+  public MALMessage sendPublishError(
+      UShort area, UShort service,
+      UShort operation, UOctet version,
+      Identifier publisher, Long transactionId,
+      NamedValueList supplements, Map qosProps,
+      MOErrorException error)
+          throws IllegalArgumentException, MALInteractionException, MALException {
     if (publisher == null) throw new IllegalArgumentException("Null subscriber URI");
     if (transactionId == null) throw new IllegalArgumentException("Null transaction id");
-    if (domainId == null) throw new IllegalArgumentException("Null domain id");
-    if (networkZone == null) throw new IllegalArgumentException("Null network zone");
-    if (sessionType == null) throw new IllegalArgumentException("Null session type");
-    if (sessionName == null) throw new IllegalArgumentException("Null session name");
-    if (qos == null) throw new IllegalArgumentException("Null QoS");
-    if (priority == null) throw new IllegalArgumentException("Null priority");
     if (error == null) throw new IllegalArgumentException("Null error");
     MALMessage publishErrorMsg = createMessage(
         authenticationId,
         publisher,
         new Time(System.currentTimeMillis()), 
-        qos,
-        priority, 
-        domainId,
-        networkZone,
-        sessionType, 
-        sessionName,
         transactionId,
         Boolean.TRUE,
-        op,
-        MALPubSubOperation.PUBLISH_STAGE, 
-        qosProps,
+        area, service, operation, version,
+        InteractionType.PUBSUB, MALPubSubOperation.PUBLISH_STAGE, 
+        supplements, qosProps,
         error.getErrorNumber(),
         error.getExtraInformation());
     sendMessage(publishErrorMsg);
@@ -452,7 +614,7 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
 
   @Override
   protected void handleTransmitError(MALMessageHeader header,
-      MALStandardError standardError) throws MALException {
+      MOErrorException standardError) throws MALException {
     // Nothing to do
   }
 
@@ -461,5 +623,69 @@ public class CNESMALBrokerBinding extends Binding implements MALBrokerBinding, M
       throws MALException {
     messageDispatcher.setBroker(null);
   }
+
+  public Blob setAuthenticationId(Blob newAuthenticationId) {
+    Blob previous = authenticationId;
+    authenticationId = newAuthenticationId;
+    return previous;
+  }
+
+  // The functions in MALBrokerBinding should use Identifier instead of URI
   
+  public MALMessage sendNotifyError(MALOperation op, URI subscriber,
+                                    Long transactionId, IdentifierList domainId,
+                                    Identifier networkZone,
+                                    SessionType sessionType,
+                                    Identifier sessionName, QoSLevel notifyQos,
+                                    Map notifyQosProps, UInteger notifyPriority,
+                                    MOErrorException error) throws IllegalArgumentException,
+                                                            MALInteractionException,
+                                                            MALException {
+    return sendNotifyError(op, new URI(subscriber.getValue()),
+                 transactionId, domainId,
+                 networkZone,
+                 sessionType,
+                 sessionName, notifyQos,
+                 notifyQosProps, notifyPriority,
+                 error);
+  }
+
+  public MALMessage sendNotify(UShort area, UShort service, UShort operation,
+                               UOctet version, URI subscriber,
+                               Long transactionId, IdentifierList domainId,
+                               Map notifyQosProps, Identifier subscriptionId,
+                               UpdateHeader updateHeader,
+                               Object... updateObjects) throws IllegalArgumentException,
+                                                   MALInteractionException,
+                                                   MALException {
+    return sendNotify(area, service, operation,
+                      version, new URI(subscriber.getValue()),
+                      transactionId, domainId,
+                      notifyQosProps, subscriptionId,
+                      updateHeader,
+                      updateObjects);
+  }
+
+  public MALMessage sendNotifyError(UShort area, UShort service,
+                                    UShort operation, UOctet version,
+                                    URI subscriber, Long transactionId,
+                                    IdentifierList domainId,
+                                    Identifier networkZone,
+                                    SessionType sessionType,
+                                    Identifier sessionName, QoSLevel notifyQos,
+                                    Map notifyQosProps, UInteger notifyPriority,
+                                    MOErrorException error) throws IllegalArgumentException,
+                                                            MALInteractionException,
+                                                            MALException {
+    return sendNotifyError(area, service,
+                           operation, version,
+                           new URI(subscriber.getValue()), transactionId,
+                           domainId,
+                           networkZone,
+                           sessionType,
+                           sessionName, notifyQos,
+                           notifyQosProps, notifyPriority,
+                           error);
+  }
+
 }

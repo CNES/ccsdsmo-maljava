@@ -28,7 +28,7 @@ import java.util.Map;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.accesscontrol.MALCheckErrorException;
 import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
@@ -62,7 +62,7 @@ public abstract class MessageDeliveryTask<B extends Binding> implements Task {
       logger.log(BasicLevel.DEBUG, "MessageDeliveryTask.run()\n" + "msg=" + msg);
     if (binding.isClosed()) {
       String errorMsg = new String("Closed");
-      MALStandardError error = new MALStandardError(
+      MOErrorException error = new MOErrorException(
           MALHelper.DELIVERY_FAILED_ERROR_NUMBER, new Union(errorMsg));
       onDeliveryError(error);
       return;
@@ -82,7 +82,7 @@ public abstract class MessageDeliveryTask<B extends Binding> implements Task {
           String errorMsg = new String(
               "Message delivery timed out: " + msg + 
               ", expiration duration = " + duration);
-          MALStandardError error = new MALStandardError(
+          MOErrorException error = new MOErrorException(
               MALHelper.DELIVERY_TIMEDOUT_ERROR_NUMBER, new Union(errorMsg));
           onDeliveryError(error);
           return;
@@ -106,7 +106,7 @@ public abstract class MessageDeliveryTask<B extends Binding> implements Task {
       logger.log(BasicLevel.DEBUG, 
           "MessageDeliveryTask.abort()");
     String errorMsg = new String("Message delivery abort");
-    MALStandardError error = new MALStandardError(
+    MOErrorException error = new MOErrorException(
         MALHelper.DELIVERY_FAILED_ERROR_NUMBER, new Union(errorMsg));
     try {
       onDeliveryError(error);
@@ -119,7 +119,7 @@ public abstract class MessageDeliveryTask<B extends Binding> implements Task {
     }
   }
   
-  protected abstract void onDeliveryError(MALStandardError error) throws MALInteractionException, MALException;
+  protected abstract void onDeliveryError(MOErrorException error) throws MALInteractionException, MALException;
   
   protected abstract void deliverMessage() throws MALInteractionException, MALException;
   

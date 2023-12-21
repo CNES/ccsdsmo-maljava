@@ -34,14 +34,6 @@ public interface SubscriberContextMBean {
   String getOperationName();
   
   String getDomain();
-  
-  String getNetworkZone();
-  
-  String getSessionType();
-  
-  String getSessionName();
-  
-  String getQoSLevelAsString();
-  
-  long getPriorityAsLong();
+
+  String getSupplementsAsString();
 }

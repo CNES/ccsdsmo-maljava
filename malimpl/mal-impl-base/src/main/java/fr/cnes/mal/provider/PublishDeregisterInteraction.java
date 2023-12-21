@@ -26,10 +26,13 @@ package fr.cnes.mal.provider;
 import java.util.Map;
 
 import org.ccsds.moims.mo.mal.MALException;
+import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
 import org.ccsds.moims.mo.mal.MALPubSubOperation;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
 import org.ccsds.moims.mo.mal.structures.UOctet;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageBody;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
@@ -69,7 +72,14 @@ public class PublishDeregisterInteraction extends SyncInteraction {
     if (header.getInteractionType().getOrdinal() == 
       InteractionType._PUBSUB_INDEX) {
       UOctet nextStage = header.getInteractionStage();
-      checkStageTransition(getStage(), nextStage);
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        this.error = new MOErrorException(
+            MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+            new Union(exc.getMessage()));
+        throw exc;
+      }
       setStage(nextStage);
       setStatus(DONE);
       notifyInitiator(body);
@@ -80,6 +90,26 @@ public class PublishDeregisterInteraction extends SyncInteraction {
 
   protected void onError(MALOperation operation, MALMessageHeader header,
       MALErrorBody body, Map qosProperties) throws MALException {
-    throw CNESMALContext.createException("Unexpected PUBLISH DEREGISTER ERROR: " + header);
+    if (header.getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX) {
+      UOctet nextStage = header.getInteractionStage();
+      try {
+        checkStageTransition(getStage(), nextStage);
+      } catch (MALException exc) {
+        if (error == null) {
+          this.error = new MOErrorException(
+              MALHelper.INCORRECT_STATE_ERROR_NUMBER,
+              new Union(exc.getMessage()));
+          throw exc;
+        }
+        // the message has already been processed, this is an internal call
+        nextStage = new UOctet((short) (getStage().getValue() + 1));
+      }
+      setStage(nextStage);
+      setStatus(FAILED);
+      notifyInitiator(body);
+    } else {
+      throw CNESMALContext.createException("Unexpected interaction type: "
+          + header.getInteractionType());
+    }
   }
 }

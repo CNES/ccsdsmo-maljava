@@ -31,10 +31,15 @@ import java.util.List;
 import org.ccsds.moims.mo.mal.MALArea;
 import org.ccsds.moims.mo.mal.MALContextFactory;
 import org.ccsds.moims.mo.mal.MALService;
-import org.ccsds.moims.mo.mal.structures.EntityKey;
-import org.ccsds.moims.mo.mal.structures.EntityKeyList;
+import org.ccsds.moims.mo.mal.structures.NullableAttributeList;
+import org.ccsds.moims.mo.mal.structures.Attribute;
+import org.ccsds.moims.mo.mal.structures.AttributeTypeList;
 import org.ccsds.moims.mo.mal.structures.Identifier;
+import org.ccsds.moims.mo.mal.structures.IdentifierList;
+import org.ccsds.moims.mo.mal.structures.NullableAttribute;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
+import org.ccsds.moims.mo.mal.structures.SubscriptionFilter;
+import org.ccsds.moims.mo.mal.structures.SubscriptionFilterList;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.UShort;
@@ -52,10 +57,12 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
   
   private PublisherKey key;
   private Long transactionId;
-  private QoSLevel qos;
-  private UInteger priority;
   private UOctet version;
-  private List<EntityPublishContext> entityPublishContextList;
+//  private List<EntityPublishContext> entityPublishContextList;
+  // TODO SL : seems that this variable is never really used
+  private List<SubscriptionContext> subscriptionContexts;
+  private IdentifierList subKeys;
+  private AttributeTypeList keyTypes;
 
   private String jmxName;
   
@@ -63,52 +70,50 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
       ClassNotFoundException {
     key = (PublisherKey) is.readObject();
     transactionId = new Long(is.readLong());
-    qos = QoSLevel.fromOrdinal(is.readInt());
-    priority = new UInteger(is.readLong());
     version = new UOctet(is.readShort());
-    int entityKeyListSize = is.readInt();
-    entityPublishContextList = new ArrayList<EntityPublishContext>(
-        entityKeyListSize);
-    for (int i = 0; i < entityKeyListSize; i++) {
-      EntityPublishContext entityPublishContext = (EntityPublishContext) is
-          .readObject();
-      entityPublishContextList.add(entityPublishContext);
+    int subscriptionContextsSize = is.readInt();
+    subscriptionContexts = new ArrayList<SubscriptionContext>(subscriptionContextsSize);
+    for (int i = 0; i < subscriptionContextsSize; i++) {
+      SubscriptionContext subscriptionContext = (SubscriptionContext) is.readObject();
+      subscriptionContexts.add(subscriptionContext);
     }
   }
 
   private void writeObject(java.io.ObjectOutputStream os) throws IOException {
     os.writeObject(key);
     os.writeLong(transactionId);
-    os.writeInt(qos.getOrdinal());
-    os.writeLong(priority.getValue());
     os.writeShort(version.getValue());
-    os.writeInt(entityPublishContextList.size());
-    for (int i = 0; i < entityPublishContextList.size(); i++) {
-      EntityPublishContext entityPublishContext = entityPublishContextList
-          .get(i);
-      os.writeObject(entityPublishContext);
+    os.writeInt(subscriptionContexts.size());
+    for (int i = 0; i < subscriptionContexts.size(); i++) {
+      SubscriptionContext subscriptionContext = subscriptionContexts.get(i);
+      os.writeObject(subscriptionContext);
     }
   }
 
-  public PublisherContext(PublisherKey key, Long transactionId, QoSLevel qos,
-      UInteger priority, UOctet version, EntityKeyList patterns, String jmxName) {
+  public PublisherContext(PublisherKey key, Long transactionId,
+      UOctet version, IdentifierList subKeys, AttributeTypeList keyTypes, String jmxName) {
     super();
     this.key = key;
     this.transactionId = transactionId;
-    this.qos = qos;
-    this.priority = priority;
     this.version = version;
+    this.subKeys = subKeys;
+    this.keyTypes = keyTypes;
     this.jmxName = jmxName;
-    setPatterns(patterns);
+    subscriptionContexts = new ArrayList<SubscriptionContext>();
+  }
+  
+  public void reregister(IdentifierList subKeys, AttributeTypeList keyTypes) {
+    this.subKeys = subKeys;
+    this.keyTypes = keyTypes;
   }
   
   public void initJmx(String jmxName) {
     this.jmxName = jmxName;
-    for (int i = 0; i < entityPublishContextList.size(); i++) {
-      EntityPublishContext entityPublishContext = entityPublishContextList.get(i);
-      String mBeanName = getMBeanName(i);
+    for (int i = 0; i < subscriptionContexts.size(); i++) {
+      SubscriptionContext subscriptionContext = subscriptionContexts.get(i);
+      String mBeanName = getMBeanName(subscriptionContext);
       try {
-        MXWrapper.registerMBean(entityPublishContext, mBeanName);
+        MXWrapper.registerMBean(subscriptionContext, mBeanName);
       } catch (Exception e) {
         Broker.logger.log(BasicLevel.WARN, this.getClass().getName() + " jmx failed", e);
       }
@@ -116,8 +121,9 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
   }
   
   public void unregisterMBeans() {
-    for (int i = 0; i < entityPublishContextList.size(); i++) {
-      String mBeanName = getMBeanName(i);
+    for (int i = 0; i < subscriptionContexts.size(); i++) {
+      SubscriptionContext subscriptionContext = subscriptionContexts.get(i);
+      String mBeanName = getMBeanName(subscriptionContext);
       try {
         MXWrapper.unregisterMBean(mBeanName);
       } catch (Exception e) {
@@ -126,20 +132,29 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
     }
   }
   
-  private String getMBeanName(int index) {
-    return jmxName + ",publishEntity=PublishEntity-" + index;
+  private String getMBeanName(SubscriptionContext subscriptionContext) {
+    String subscriber = subscriptionContext.getSubscriberContext().getURI();
+    String[] subParts = subscriber.split("/");
+    subscriber = subParts[subParts.length-1];
+    return jmxName +
+        ",subscriber=" + subscriber +
+        ",subscription=" + subscriptionContext.getSubscriptionId().getValue();
   }
   
-  private void addPublish(EntityPublishContext entityPublishContext) {
-    String mBeanName = getMBeanName(entityPublishContextList.size());
-    entityPublishContextList.add(entityPublishContext);
-    try {
-      MXWrapper.registerMBean(entityPublishContext, mBeanName);
-    } catch (Exception e) {
-      Broker.logger.log(BasicLevel.WARN, this.getClass().getName() + " jmx failed", e);
+  public void addSubscription(SubscriptionContext subscriptionContext) {
+    String mBeanName = getMBeanName(subscriptionContext);
+    if (! subscriptionContexts.contains(subscriptionContext)) {
+      // the function is also called on resubscription
+      subscriptionContexts.add(subscriptionContext);
+      try {
+        MXWrapper.registerMBean(subscriptionContext, mBeanName);
+      } catch (Exception e) {
+        Broker.logger.log(BasicLevel.WARN, this.getClass().getName() + " jmx failed", e);
+      }
     }
   }
   
+  /*
   private void insertPatternsWithoutWildcard(EntityKeyList patterns) {
     for (int i = 0; i < patterns.size();) {
       EntityKey entityKey = patterns.get(i);
@@ -225,6 +240,7 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
     if (Broker.logger.isLoggable(BasicLevel.DEBUG))
       Broker.logger.log(BasicLevel.DEBUG, "-> entityPublishContextList = " + entityPublishContextList);
   }
+  **/
 
   public PublisherKey getKey() {
     return key;
@@ -234,50 +250,38 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
     return transactionId;
   }
 
-  public QoSLevel getQos() {
-    return qos;
-  }
-
-  public void setQos(QoSLevel qos) {
-    this.qos = qos;
-  }
-
-  public UInteger getPriority() {
-    return priority;
-  }
-
-  public void setPriority(UInteger priority) {
-    this.priority = priority;
-  }
-
   public void checkUpdates(UpdateCheckReport report,
-      UpdateHeaderList updateHeaderList, List... updateLists) {
-    updateLoop: 
-    for (int j = 0; j < updateHeaderList.size(); j++) {
-      UpdateHeader updateHeader = updateHeaderList.get(j);
-      EntityKey updateKey = updateHeader.getKey();
-      for (int i = 0; i < entityPublishContextList.size(); i++) {
-        EntityPublishContext entityPublishContext = entityPublishContextList
-            .get(i);
-        if (entityPublishContext.match(updateKey)) {
-          report.addEntityPublishContext(entityPublishContext);
-          report.addUpdateHeaderToNotify(updateHeader);
-          for (int k = 0; k < updateLists.length; k++) {
-            if (updateLists[k] != null) {
-              report.addUpdateToNotify(k, updateLists[k].get(j));
-            }
-          }
-          continue updateLoop;
-        }
-      }
-
+      UpdateHeader updateHeader, Object... updateObjects) {
+    NullableAttributeList keyValues = updateHeader.getKeyValues();
+    // TODO SL new PublishRegister to define in v2
+    // check the keyValues match the subKeys
+    int expectedKeyNumber = (subKeys == null ? 0 : subKeys.size());
+    int keyNumber = (keyValues == null ? 0 : keyValues.size());
+    if (keyNumber != expectedKeyNumber) {
+      if (Broker.logger.isLoggable(BasicLevel.DEBUG))
+        Broker.logger.log(BasicLevel.DEBUG, "Key numbers do not match.");
       report.addFailedUpdateHeader(updateHeader);
-      for (int k = 0; k < updateLists.length; k++) {
-        if (updateLists[k] != null) {
-          report.addFailedUpdate(k, updateLists[k].get(j));
-        }
+      report.addFailedUpdate(updateObjects);
+      return;
+    }
+    // check the key value types
+    for (int i = 0; i < keyNumber; i++) {
+      Attribute key = keyValues.get(i).getValue();
+      
+      if (key!= null && key.getTypeShortForm().intValue() != keyTypes.get(i).getNumericValue().getValue()) {
+        if (Broker.logger.isLoggable(BasicLevel.DEBUG))
+          Broker.logger.log(BasicLevel.DEBUG, "Key(" + i + ") type does not match: " +
+              key.getTypeShortForm().intValue() + " / " + keyTypes.get(i).getNumericValue().getValue());
+        report.addFailedUpdateHeader(updateHeader);
+        report.addFailedUpdate(updateObjects);
+        return;
       }
     }
+    
+    // TODO SL a simplifier
+    report.addPublisherContext(this);
+    report.addUpdateHeaderToNotify(updateHeader);
+    report.addUpdateToNotify(updateObjects);
   }
   
   public void checkSubscription(SubscriptionContext subscriptionContext) {
@@ -285,42 +289,28 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
       Broker.logger.log(BasicLevel.DEBUG, "PublisherContext.checkSubscription(" + subscriptionContext + ')');
     SubscriberContext subscriberContext = subscriptionContext.getSubscriberContext();
     DomainKey domainKey = key.getDomainKey();
-    List<EntityRequestContext> entityRequests = subscriptionContext.getEntityRequestContexts();
-    loop:
-    for (EntityRequestContext entityRequestContext : entityRequests) {
-      if (subscriberContext.match(domainKey.getDomain(),
-          domainKey.getNetworkZone(), domainKey.getSessionType(),
-          domainKey.getSessionName())
-          && entityRequestContext.matchArea(domainKey.getArea())
-          && entityRequestContext.matchService(domainKey.getService())
-          && entityRequestContext.matchOperation(domainKey.getOperation())
-          && entityRequestContext.matchDomain(domainKey.getDomain())) {
-        for (EntityPublishContext entityPublishContext : entityPublishContextList) {
-          if (entityPublishContext.checkEntityRequestEquals(entityRequestContext)) continue loop;
-        }
-        for (EntityPublishContext entityPublishContext : entityPublishContextList) {
-          entityPublishContext.checkEntityRequestIncludes(entityRequestContext);
-        }
-        for (EntityPublishContext entityPublishContext : entityPublishContextList) {
-          entityPublishContext.checkEntityRequestPotentialMatch(entityRequestContext);
-        }
-      }
+    // check the operation
+    if (! subscriberContext.matchArea(domainKey.getArea())
+        || ! subscriberContext.matchService(domainKey.getService())
+        || ! subscriberContext.matchOperation(domainKey.getOperation())) {
+      if (Broker.logger.isLoggable(BasicLevel.DEBUG))
+        Broker.logger.log(BasicLevel.DEBUG, "Operation does not match.");
+      return;
     }
+    subscriptionContext.updatePublisher(this);
+    // TODO SL register the subscription
+    // as a subscriptionContext? or as an EntityRequestContext?
     if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-      Broker.logger.log(BasicLevel.DEBUG, "-> entityPublishContextList=" + entityPublishContextList);
-  }
-  
-  public void removeEntityRequest(EntityRequestContext entityRequestContext) {
-    for (int i = 0; i < entityPublishContextList.size(); i++) {
-      EntityPublishContext entityPublishContext = entityPublishContextList.get(i);
-      entityPublishContext.removeEntityRequest(entityRequestContext);
-    }
+      Broker.logger.log(BasicLevel.DEBUG, "-> subscriptionContexts=" + subscriptionContexts);
   }
   
   public void removeSubscriptionContext(SubscriptionContext subscriptionContext) {
-    List<EntityRequestContext> entityRequestContextList = subscriptionContext.getEntityRequestContexts();
-    for (EntityRequestContext entityRequestContext : entityRequestContextList) {
-      removeEntityRequest(entityRequestContext);
+    subscriptionContexts.remove(subscriptionContext);
+    String mBeanName = getMBeanName(subscriptionContext);
+    try {
+      MXWrapper.unregisterMBean(mBeanName);
+    } catch (Exception e) {
+      Broker.logger.log(BasicLevel.WARN, this.getClass().getName() + " jmx failed", e);
     }
   }
   
@@ -334,7 +324,8 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
   @Override
   public String toString() {
     return "PublisherContext [key=" + key + ", transactionId=" + transactionId
-        + ", qos=" + qos + ", priority=" + priority + ", entityPublishContextList=" + entityPublishContextList
+        + ", subscriptionContexts=" + subscriptionContexts
+        + "subKeys=" + subKeys + "keyTypes=" + keyTypes
         + "]";
   }
 
@@ -366,24 +357,12 @@ public class PublisherContext implements Serializable, PublisherContextMBean {
     UShort operationNumber = key.getDomainKey().getOperation();
     return service.getOperationByNumber(operationNumber).getName().getValue();
   }
-  
-  public String getNetworkZone() {
-    return key.getDomainKey().getNetworkZone().getValue();
-  }
 
-  public String getSessionType() {
-    return key.getDomainKey().getSessionType().toString();
-  }
-
-  public String getSessionName() {
-    return key.getDomainKey().getSessionName().getValue();
+  public List<SubscriptionContext> getSubscriptionContexts() {
+    return subscriptionContexts;
   }
   
-  public String getQoSLevelAsString() {
-    return qos.toString();
-  }
-
-  public long getPriorityAsLong() {
-    return priority.getValue();
+  public IdentifierList getSubKeys() {
+    return subKeys;
   }
 }

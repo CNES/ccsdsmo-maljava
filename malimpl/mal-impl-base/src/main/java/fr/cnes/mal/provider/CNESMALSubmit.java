@@ -27,11 +27,12 @@ import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALInteractionException;
 import org.ccsds.moims.mo.mal.MALOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.MALSubmitOperation;
 import org.ccsds.moims.mo.mal.provider.MALSubmit;
 import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.transport.MALMessage;
 import org.ccsds.moims.mo.mal.transport.MALMessageHeader;
 
@@ -44,24 +45,25 @@ public class CNESMALSubmit extends CNESMALInteraction implements MALSubmit {
       MessageSender messageSender, 
       MALMessage request,
       MALOperation operation,
-      Blob authenticationId) {
-    super(messageHeader, messageSender, request, operation, authenticationId);
+      Blob authenticationId,
+      NamedValueList providerSupplements) {
+    super(messageHeader, messageSender, request, operation, authenticationId, providerSupplements);
     setStage(MALSubmitOperation.SUBMIT_STAGE);
   }
 
   public MALMessage sendAcknowledgement() throws MALInteractionException, MALException {
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.SUBMIT, 
-        MALSubmitOperation.SUBMIT_ACK_STAGE, Boolean.FALSE);
+        MALSubmitOperation.SUBMIT_ACK_STAGE, Boolean.FALSE, providerSupplements);
     return msg;
   }
 
-  public MALMessage sendError(MALStandardError error) throws MALInteractionException, MALException {
+  public MALMessage sendError(MOErrorException error) throws MALInteractionException, MALException {
     if (error == null) throw new IllegalArgumentException("Null error");
     checkAckStage();
     MALMessage msg = sendResult(InteractionType.SUBMIT, 
         MALSubmitOperation.SUBMIT_ACK_STAGE, Boolean.TRUE, 
-        error.getErrorNumber(), error.getExtraInformation());
+        providerSupplements, error.getErrorNumber(), error.getExtraInformation());
     setFailed(true);
     return msg;
   }

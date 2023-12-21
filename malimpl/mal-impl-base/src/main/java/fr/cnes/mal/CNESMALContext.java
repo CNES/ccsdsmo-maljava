@@ -34,7 +34,7 @@ import java.util.Vector;
 import org.ccsds.moims.mo.mal.MALContext;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALInteractionException;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.accesscontrol.MALAccessControl;
 import org.ccsds.moims.mo.mal.accesscontrol.MALAccessControlFactory;
 import org.ccsds.moims.mo.mal.broker.MALBrokerManager;
@@ -136,6 +136,8 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   }
 
   public void init(Map properties) throws MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALContext.init");
     this.properties = properties;
     String defaultThreadPoolSizeS = 
       (String) properties.get(THREAD_POOL_SIZE);
@@ -215,6 +217,8 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   }
 
   public synchronized MALConsumerManager createConsumerManager() throws MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALContext.createConsumerManager");
     checkClosedError();
     String jmxName = getManagerMBeanName("Consumer", consumerManagers.size());
     String name = "MALConsumerManager#" + consumerManagers.size();
@@ -234,6 +238,8 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   }
 
   public synchronized MALProviderManager createProviderManager() throws MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALContext.createProviderManager");
     checkClosedError();
     String jmxName = getManagerMBeanName("Provider", providerManagers.size());
     String name = "MALProviderManager#" + providerManagers.size();
@@ -253,6 +259,8 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   }
   
   public synchronized MALBrokerManager createBrokerManager() throws MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALContext.createBrokerManager");
     checkClosedError();
     String jmxName = getManagerMBeanName("Broker", brokerManagers.size());
     String name = "MALBrokerManager#" + brokerManagers.size();
@@ -324,7 +332,7 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   }
   
   public static MALInteractionException createException(UInteger errorCode, String msg) {
-    return new MALInteractionException(new MALStandardError(errorCode, new Union(msg)));
+    return new MALInteractionException(new MOErrorException(errorCode, new Union(msg)));
   }
 
   public synchronized MALTransport getTransport(URI uri) throws IllegalArgumentException, MALException {
@@ -360,6 +368,8 @@ public class CNESMALContext implements MALContext, CNESMALContextMBean {
   class InteractionWatchDog extends TimerTask {
     @Override
     public void run() {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "InteractionWatchDog.run");
       checkInteractionActivity();
     }
   }

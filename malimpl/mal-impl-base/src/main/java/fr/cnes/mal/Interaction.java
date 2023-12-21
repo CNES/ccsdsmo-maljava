@@ -28,7 +28,7 @@ import java.util.Map;
 import org.ccsds.moims.mo.mal.MALException;
 import org.ccsds.moims.mo.mal.MALHelper;
 import org.ccsds.moims.mo.mal.MALOperation;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.transport.MALErrorBody;
@@ -63,6 +63,8 @@ public abstract class Interaction {
   private MALMessageHeader initiationHeader;
   
   private MALMessage msg;
+  
+  protected MOErrorException error;
   
   private long timestamp;
   
@@ -147,7 +149,15 @@ public abstract class Interaction {
     } catch (MALException exc) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "", exc);
+      try {
+        close(exc.getMessage());
+      } catch (MALException e) {
+        if (logger.isLoggable(BasicLevel.DEBUG))
+          logger.log(BasicLevel.DEBUG, "Exception in error handling code ", e);
+      }
     }
+    // TODO SL check if this does not corrupt the implementation
+    this.msg = null;
   }
   
   public boolean isCompleted() {
@@ -157,29 +167,46 @@ public abstract class Interaction {
   public abstract boolean consumerIsActive();
   
   public void close() throws MALException {
-    status = FAILED;
-    MALMessageHeader errorHeader = new CNESMALMessageHeader(
-        initiationHeader.getURIFrom(),
-        initiationHeader.getAuthenticationId(), 
-        initiationHeader.getURITo(), 
-        initiationHeader.getTimestamp(), 
-        initiationHeader.getQoSlevel(), 
-        initiationHeader.getPriority(), 
-        initiationHeader.getDomain(), 
-        initiationHeader.getNetworkZone(), 
-        initiationHeader.getSession(), 
-        initiationHeader.getSessionName(), 
-        initiationHeader.getInteractionType(), 
-        new UOctet((short) (getStage().getValue() + 1)), 
-        initiationHeader.getTransactionId(), 
-        initiationHeader.getServiceArea(), 
-        initiationHeader.getService(), 
-        initiationHeader.getOperation(), 
-        initiationHeader.getAreaVersion(), 
-        Boolean.TRUE);
-    MALStandardError error = new MALStandardError(
-        MALHelper.INTERNAL_ERROR_NUMBER,
-        new Union("Closed interaction"));
+    close("Closed interaction");
+  }
+
+  public void close(String errMsg) throws MALException {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "Interaction.close " + errMsg);
+    if (isCompleted())
+      return;
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "Interaction.close, stage=" + getStage().getValue()
+                 + ", close stage=" + (getStage().getValue() + 1));
+    MALMessageHeader errorHeader = null;
+    // the MAL testbed requires to send the header of the original message in the upcall
+    // this is a change of the Java API introduced during the prototyping of MAL v2
+    // I do not believe that this is a good idea, as this function may be called in case of an internal error
+    // without any original message.
+    // also keep in mind that this header may have the isErrorMessage set to false
+    if (this.msg != null) {
+      errorHeader = msg.getHeader();
+    } else {
+      errorHeader = new CNESMALMessageHeader(
+          initiationHeader.getTo(),
+          initiationHeader.getAuthenticationId(), 
+          initiationHeader.getFrom(), 
+          initiationHeader.getTimestamp(), 
+          initiationHeader.getInteractionType(), 
+          new UOctet((short) (getStage().getValue() + 1)), 
+          initiationHeader.getTransactionId(), 
+          initiationHeader.getServiceArea(), 
+          initiationHeader.getService(), 
+          initiationHeader.getOperation(), 
+          initiationHeader.getServiceVersion(), 
+          Boolean.TRUE,
+          initiationHeader.getSupplements());
+    }
+    if (error != null) {
+      error = new MOErrorException(
+          MALHelper.INTERNAL_ERROR_NUMBER,
+          new Union(errMsg));
+    }
     onError(operation, errorHeader, new CNESMALErrorBody(error), null);
   }
 

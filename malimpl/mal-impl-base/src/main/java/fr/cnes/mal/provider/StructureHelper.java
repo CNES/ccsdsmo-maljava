@@ -24,7 +24,6 @@
 package fr.cnes.mal.provider;
 
 import org.ccsds.moims.mo.mal.MALException;
-import org.ccsds.moims.mo.mal.structures.EntityKey;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.objectweb.util.monolog.api.Logger;
@@ -63,15 +62,6 @@ public class StructureHelper {
     else return "" + id.longValue();
   }
   
-  public static String[] createStringArray(EntityKey entityKey) {
-    String[] res = new String[4];
-    res[0] = toString(entityKey.getFirstSubKey());
-    res[1] = toString(entityKey.getSecondSubKey());
-    res[2] = toString(entityKey.getThirdSubKey());
-    res[3] = toString(entityKey.getFourthSubKey());
-    return res;
-  }
-  
   public static IdentifierList createDomain(String[] stringList) {
     IdentifierList domain = new IdentifierList();
     for (int i = 0; i < stringList.length; i++) {
@@ -82,15 +72,6 @@ public class StructureHelper {
   
   public static MALException createException(Exception exc) {
     return new MALException(exc.toString(), exc);
-  }
-  
-  public static EntityKey createEntityKey(String[] key) {
-    EntityKey res = new EntityKey(
-        createIdentifier(key[0]), 
-        createLong(key[1]), 
-        createLong(key[2]), 
-        createLong(key[3]));
-    return res;
   }
   
   public static Identifier createIdentifier(String key) {

@@ -31,16 +31,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.ccsds.moims.mo.mal.MALHelper;
+import org.ccsds.moims.mo.mal.MALInteractionException;
+import org.ccsds.moims.mo.mal.MOErrorException;
+import org.ccsds.moims.mo.mal.structures.AttributeTypeList;
 import org.ccsds.moims.mo.mal.structures.Element;
-import org.ccsds.moims.mo.mal.structures.EntityKeyList;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
+import org.ccsds.moims.mo.mal.structures.Subscription;
+import org.ccsds.moims.mo.mal.structures.SubscriptionFilter;
+import org.ccsds.moims.mo.mal.structures.SubscriptionFilterList;
 import org.ccsds.moims.mo.mal.structures.UInteger;
 import org.ccsds.moims.mo.mal.structures.UOctet;
 import org.ccsds.moims.mo.mal.structures.URI;
 import org.ccsds.moims.mo.mal.structures.UShort;
+import org.ccsds.moims.mo.mal.structures.Union;
 import org.ccsds.moims.mo.mal.structures.UpdateHeader;
 import org.ccsds.moims.mo.mal.structures.UpdateHeaderList;
 import org.ccsds.moims.mo.mal.transport.MALEncodedElementList;
@@ -56,7 +64,11 @@ public class Broker implements Serializable {
       .getLogger(Broker.class.getName());
 
   public static final String ALL = "*";
-
+  
+  public static MALInteractionException createException(UInteger errorCode, String msg) {
+    return new MALInteractionException(new MOErrorException(errorCode, new Union(msg)));
+  }
+  
   private HashMap<SubscriberKey, SubscriberContext> subscriberContexts;
 
   private HashMap<PublisherKey, PublisherContext> publisherContexts;
@@ -142,32 +154,38 @@ public class Broker implements Serializable {
     }
   }
 
-  public void register(URI subscriberUri, Long transactionId,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, QoSLevel qosLevel, Map qosProperties,
-      UInteger priority, Identifier subscriptionId,
-      BrokerEntityRequest[] entityRequests, UShort area, UShort service,
-      UShort operation, UOctet version) throws Exception {
+  public void register(Identifier subscriberUri, Long transactionId,
+      NamedValueList supplements, Map qosProperties,
+      Identifier subscriptionId, Subscription subscription,
+      UShort area, UShort service, UShort operation, UOctet version) throws Exception {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(
           BasicLevel.DEBUG,
           "Broker.register(" + subscriberUri + ',' + transactionId + ','
-              + Strings.toString(domain) + ',' + networkZone + ','
-              + sessionType + ',' + qosLevel + ',' + qosProperties + ','
-              + priority + ',' + subscriptionId + ','
-              + Strings.toString(entityRequests) + ')');
-    String sessionNameS = null;
-    if (sessionName != null) {
-      sessionNameS = sessionName.getValue();
+              + String.valueOf(supplements) + ',' + qosProperties + ','
+              + subscriptionId + ',' + subscription + ')');
+
+    SubscriptionFilterList filters = subscription.getFilters();
+    if (filters != null) {
+      for (int i = 0; i < filters.size(); i++) {
+        SubscriptionFilter filter = filters.get(i);
+        if (filter.getName() == null)
+          throw new IllegalArgumentException("null name in SubscriptionFilter");
+        if (filter.getValues() == null)
+          throw new IllegalArgumentException("null values list in SubscriptionFilter");
+        if (filter.getValues().contains(null))
+          throw new IllegalArgumentException("null value in SubscriptionFilter");
+      }
     }
+    
     SubscriberKey key = new SubscriberKey(subscriberUri, new DomainKey(area,
-        service, operation, domain, networkZone, sessionType, sessionName, version));
+        service, operation, subscription.getDomain(), version));
     SubscriberContext subscriberContext = (SubscriberContext) subscriberContexts
         .get(key);
     if (subscriberContext == null) {
       String mBeanName = getSubscriberMBeanName(key);
-      subscriberContext = new SubscriberContext(key, qosLevel, qosProperties,
-          priority, mBeanName, area, service, operation, version);
+      subscriberContext = new SubscriberContext(key, supplements, qosProperties,
+          mBeanName, area, service, operation, version);
       subscriberContexts.put(key, subscriberContext);
       try {
         MXWrapper.registerMBean(subscriberContext, mBeanName);
@@ -181,26 +199,31 @@ public class Broker implements Serializable {
         .getSubscription(subscriptionId);
     if (subscriptionContext == null) {
       subscriptionContext = new SubscriptionContext(subscriberContext,
-          subscriptionId, transactionId, jmxName);
+          subscriptionId, transactionId,
+          subscription.getDomain(), subscription.getSelectedKeys(), subscription.getFilters(), jmxName);
       subscriberContext.addSubscription(subscriptionContext);
     } else {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "subscription context already exists");
+      // TODO SL je ne comprends pas ce code
       Collection<PublisherContext> publishers = publisherContexts.values();
       Iterator<PublisherContext> publisherIterator = publishers.iterator();
       while (publisherIterator.hasNext()) {
         PublisherContext publisherContext = publisherIterator.next();
         publisherContext.removeSubscriptionContext(subscriptionContext);
       }
-      subscriptionContext.reset();
+      subscriptionContext.resubscribe(subscription.getDomain(), subscription.getSelectedKeys(), subscription.getFilters());
     }
 
-    for (int i = 0; i < entityRequests.length; i++) {
-      EntityRequestContext entityRequest = new EntityRequestContext(
-          subscriptionContext, entityRequests[i].getSubDomain(),
-          entityRequests[i].isAllAreas(), entityRequests[i].isAllServices(),
-          entityRequests[i].isAllOperations(), entityRequests[i].getKey(),
-          entityRequests[i].isOnlyOnChange());
-      subscriptionContext.addEntityRequest(entityRequest);
-    }
+    // TODO SL process subscription
+//    for (int i = 0; i < entityRequests.length; i++) {
+//      EntityRequestContext entityRequest = new EntityRequestContext(
+//          subscriptionContext, entityRequests[i].getSubDomain(),
+//          entityRequests[i].isAllAreas(), entityRequests[i].isAllServices(),
+//          entityRequests[i].isAllOperations(), entityRequests[i].getKey(),
+//          entityRequests[i].isOnlyOnChange());
+//      subscriptionContext.addEntityRequest(entityRequest);
+//    }
     
     Collection<PublisherContext> publishers = publisherContexts.values();
     Iterator<PublisherContext> publisherIterator = publishers.iterator();
@@ -212,18 +235,14 @@ public class Broker implements Serializable {
     }
   }
 
-  public void deregister(URI subscriberUri, IdentifierList domain,
-      Identifier networkZone, SessionType sessionType, Identifier sessionName,
+  public void deregister(Identifier subscriberUri,
       IdentifierList idList, UShort area, UShort service,
       UShort operation, UOctet areaVersion) throws Exception {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG,
-          "Broker.deregister(" + subscriberUri + ',' + Strings.toString(domain)
-              + ',' + networkZone + ',' + sessionType + ',' + sessionName + ','
-              + subscriberUri + ',' + Strings.toString(idList) + ')');
+          "Broker.deregister(" + subscriberUri + ',' + Strings.toString(idList) + ')');
     SubscriberKey key = new SubscriberKey(subscriberUri, new DomainKey(area,
-        service, operation, domain,
-        networkZone, sessionType, sessionName, areaVersion));
+        service, operation, null, areaVersion));
     SubscriberContext subscriberContext = (SubscriberContext) subscriberContexts
         .get(key);
     if (subscriberContext != null) {
@@ -264,19 +283,15 @@ public class Broker implements Serializable {
     // Else idempotent
   }
 
-  public void deregister(URI subscriberUri, IdentifierList domain,
-      Identifier networkZone, SessionType sessionType, Identifier sessionName,
+  public void deregister(Identifier subscriberUri,
       UShort area, UShort service,
       UShort operation, UOctet areaVersion)
       throws Exception {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "Broker.deregister(" + subscriberUri + ','
-          + Strings.toString(domain) + ',' + networkZone + ',' + sessionType
-          + ',' + sessionName + ','
           + area + ',' + service + ',' + operation + ')');
     SubscriberKey key = new SubscriberKey(subscriberUri, new DomainKey(area,
-        service, operation, domain,
-        networkZone, sessionType, sessionName, areaVersion));
+        service, operation, null, areaVersion));
     SubscriberContext subscriberContext = subscriberContexts.remove(key);
     if (subscriberContext != null) {
       subscriberContext.unregisterMBeans();
@@ -311,22 +326,6 @@ public class Broker implements Serializable {
     buf.append(key.getDomainKey().getService());
     buf.append("-op#");
     buf.append(key.getDomainKey().getOperation());
-    buf.append("-");
-    IdentifierList domainId = key.getDomainKey().getDomain();
-    if (domainId.size() > 0) {
-      buf.append(domainId.get(0));
-      for (int i = 1; i < domainId.size(); i++) {
-        Identifier id = domainId.get(i);
-        buf.append("-");
-        buf.append(id);
-      }
-    }
-    buf.append("-");
-    buf.append(key.getDomainKey().getNetworkZone());
-    buf.append("-");
-    buf.append(key.getDomainKey().getSessionType().toString());
-    buf.append("-");
-    buf.append(key.getDomainKey().getSessionName());
     buf.append(",subscriber=Subscriber-");
     String subUri = key.getSubscriberUri().toString();
     subUri = subUri.replace(':', '-');
@@ -347,22 +346,6 @@ public class Broker implements Serializable {
     buf.append(key.getDomainKey().getService());
     buf.append("-op#");
     buf.append(key.getDomainKey().getOperation());
-    buf.append("-");
-    IdentifierList domainId = key.getDomainKey().getDomain();
-    if (domainId.size() > 0) {
-      buf.append(domainId.get(0));
-      for (int i = 1; i < domainId.size(); i++) {
-        Identifier id = domainId.get(i);
-        buf.append("-");
-        buf.append(id);
-      }
-    }
-    buf.append("-");
-    buf.append(key.getDomainKey().getNetworkZone());
-    buf.append("-");
-    buf.append(key.getDomainKey().getSessionType().toString());
-    buf.append("-");
-    buf.append(key.getDomainKey().getSessionName());
     buf.append(",publisher=Publisher-");
     String publisherUri = key.getUri().toString();
     publisherUri = publisherUri.replace(':', '-');
@@ -374,47 +357,42 @@ public class Broker implements Serializable {
   public BrokerNotification[] publish(BrokerPublication publication)
       throws UnknownEntityException, UnknownPublisherException {
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "Broker.publish("
-          + publication.getUpdateHeaders().size() + ')');
+      logger.log(BasicLevel.DEBUG, "Broker.publish()");
 
     UpdateCheckReport report = checkUpdates(publication.getUriFrom(),
-        publication.getArea(), publication.getService(), publication.getOperation(), 
-        publication.getVersion(),
-        publication.getDomain(), publication.getNetworkZone(),
-        publication.getSessionType(), publication.getSessionName(),
-        publication.getUpdateHeaders(), publication.getUpdateLists());
+        publication.getArea(), publication.getService(), publication.getOperation(), publication.getVersion(),
+        publication.getUpdateHeader(), publication.getUpdateObjects());
     HashMap<SubscriberKey, BrokerNotification> notifications = new HashMap<SubscriberKey, BrokerNotification>();
-    List<EntityPublishContext> entityPublishContexts = report
-        .getEntityPublishContextList();
-    UpdateHeaderList updateHeadersToNotify = report.getUpdateHeadersToNotify();
-    List[] udpatesToNotify = report.getUpdatesToNotify();
+    List<PublisherContext> publisherContexts = report.getPublisherContextList();
+    // TODO SL simplification en cours
+    // la liste ne peut avoir qu'un seul element
+    if (publisherContexts == null || publisherContexts.isEmpty()) {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "Broker.publish, no message to notify");
+      if (report.getFailedUpdateHeader() == null)
+        return null;
+      throw new UnknownEntityException(report);
+    }
+    
+    // si elle n'est pas vide, alors on prend l'unique update dans la publication
+    PublisherContext publisherContext = publisherContexts.get(0);
+    UpdateHeader updateHeaderToNotify = publication.getUpdateHeader();
+    Object[] udpatesToNotify = publication.getUpdateObjects();
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "entityPublishContexts=" + entityPublishContexts);
-    for (int i = 0; i < entityPublishContexts.size(); i++) {
-      EntityPublishContext entityPublishContext = entityPublishContexts.get(i);
-      UpdateHeader updateHeader = updateHeadersToNotify.get(i);
-      List<EntityRequestContext> entityRequestContexts = entityPublishContext
-          .getEntityRequestContexts();
-      if (logger.isLoggable(BasicLevel.DEBUG))
-        logger.log(BasicLevel.DEBUG, "entityRequestContexts=" + entityRequestContexts);
-      for (EntityRequestContext entityRequestContext : entityRequestContexts) {
-        if (entityRequestContext.matchUpdateType(updateHeader.getUpdateType().getOrdinal())) {
-          publish(publication, entityRequestContext, notifications,
-            updateHeadersToNotify, udpatesToNotify, i);
-        }
-      }
-      List<EntityRequestContext> uncheckedEntityRequestContexts = entityPublishContext
-          .getUncheckedEntityRequestContexts();
-      if (logger.isLoggable(BasicLevel.DEBUG))
-        logger.log(BasicLevel.DEBUG, "uncheckedEntityRequestContexts=" + uncheckedEntityRequestContexts);
-      for (EntityRequestContext entityRequestContext : uncheckedEntityRequestContexts) {
-        if (entityRequestContext.matchUpdateType(updateHeader.getUpdateType().getOrdinal()) &&
-            entityRequestContext.matchEntityKey(updateHeader.getKey())) {
-          publish(publication, entityRequestContext, notifications,
-              updateHeadersToNotify, udpatesToNotify, i);
-        }
+      logger.log(BasicLevel.DEBUG, "publisherContext=" + publisherContext);
+    
+    for (SubscriptionContext subscriptionContext : publisherContext.getSubscriptionContexts()) {
+      // match domain and subscription keys
+      if (subscriptionContext.matchDomain(updateHeaderToNotify.getDomain()) &&
+          subscriptionContext.matchKeys(publisherContext.getURI(), updateHeaderToNotify.getKeyValues())) {
+        // perform trimming of subscription keys
+        UpdateHeader updateHeader = new UpdateHeader(updateHeaderToNotify.getSource(), updateHeaderToNotify.getDomain(),
+                                                     subscriptionContext.trimKeys(publisherContext.getURI(), updateHeaderToNotify.getKeyValues()));
+        publish(publication, subscriptionContext, notifications,
+                updateHeader, udpatesToNotify);
       }
     }
+  
     BrokerNotification[] res = new BrokerNotification[notifications.size()];
     notifications.values().toArray(res);
     if (logger.isLoggable(BasicLevel.DEBUG))
@@ -423,55 +401,41 @@ public class Broker implements Serializable {
   }
   
   private void publish(BrokerPublication publication,
-      EntityRequestContext entityRequestContext, 
+      SubscriptionContext subscriptionContext, 
       HashMap<SubscriberKey, BrokerNotification> notifications,
-      UpdateHeaderList updateHeadersToNotify,
-      List[] updatesToNotify,
-      int entityPublishContextIndex) {
-    SubscriptionContext subscriptionContext = entityRequestContext.getSubscriptionContext();
+      UpdateHeader updateHeaderToNotify,
+      Object[] updatesToNotify) {
     SubscriberContext subscriberContext = subscriptionContext.getSubscriberContext();
-    BrokerNotification notification = notifications.get(subscriberContext
-        .getKey());
+    BrokerNotification notification = notifications.get(subscriberContext.getKey());
     if (notification == null) {
       notification = new BrokerNotification(
           subscriberContext.getKey().getSubscriberUri(),
           subscriptionContext.getTransactionId(),
-          publication.getDomain(),
-          publication.getNetworkZone(),
-          //subscriptionContext.getSubscriberContext().getKey().getDomainKey().getNetworkZone(),
-          // Must match the publication session type
-          subscriberContext.getKey().getDomainKey().getSessionType(),
-          subscriberContext.getKey().getDomainKey().getSessionName(),
-          // Must match the publication session name
-          subscriberContext.getQoSLevel(),
+          subscriberContext.getSupplements(),
           subscriberContext.getQosProperties(),
-          subscriberContext.getPriority(), publication.getArea(),
-          publication.getService(), publication.getOperation(),
-          publication.getVersion());
+          publication.getArea(), publication.getService(),
+          publication.getOperation(), publication.getVersion());
       notifications.put(subscriberContext.getKey(), notification);
     }
+    // TODO SL verifier ce passage par BrokerSubscriptionUpdate.
+    // peut-il vraiment y avoir plusieurs updates ?
     BrokerSubscriptionUpdate subscriptionUpdate = notification
         .getSubscriptionUpdate(subscriptionContext.getSubscriptionId());
-    if (subscriptionUpdate == null) {
-      List[] notifiedUpdateLists = new List[updatesToNotify.length];
-      for (int j = 0; j < notifiedUpdateLists.length; j++) {
-        notifiedUpdateLists[j] = createUpdateList(updatesToNotify[j]);
-      }
-      subscriptionUpdate = new BrokerSubscriptionUpdate(
-          subscriptionContext.getSubscriptionId(), notifiedUpdateLists);
-      notification.addSubscriptionUpdate(subscriptionUpdate);
+    if (subscriptionUpdate != null) {
+      // unexpected case with the move to a single update per Notify message
+      if (logger.isLoggable(BasicLevel.ERROR))
+        logger.log(BasicLevel.ERROR, "Unexpected existing SubscriptionUpdate");
+      throw new IllegalStateException("Unexpected existing SubscriptionUpdate");
     }
-    UpdateHeader updateHeader = updateHeadersToNotify
-        .get(entityPublishContextIndex);
+    subscriptionUpdate = new BrokerSubscriptionUpdate(
+        subscriptionContext.getSubscriptionId(), updatesToNotify);
+    notification.addSubscriptionUpdate(subscriptionUpdate);
+    UpdateHeader updateHeader = updateHeaderToNotify;
     subscriptionUpdate.addUpdateHeader(updateHeader);
-    for (int j = 0; j < updatesToNotify.length; j++) {
-      if (updatesToNotify[j] != null) {
-        subscriptionUpdate.addUpdate(j,
-            updatesToNotify[j].get(entityPublishContextIndex));
-      }
-    }
+    subscriptionUpdate.addUpdate(updatesToNotify);
   }
   
+  // TODO SL a simplifier, single update
   private static List createUpdateList(List updateList) {
     if (updateList == null) {
       return null;
@@ -488,35 +452,41 @@ public class Broker implements Serializable {
     return subscriberContexts.size();
   }
 
-  public PublisherContext registerPublisher(URI providerURI, Long tid,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, QoSLevel qos, UInteger priority,
-      EntityKeyList patterns, UShort area, UShort service,
-      UShort operation, UOctet version) {
+  public PublisherContext registerPublisher(Identifier providerURI, Long tid,
+      IdentifierList domain,
+      IdentifierList subKeys, AttributeTypeList keyTypes, UShort area, UShort service,
+      UShort operation, UOctet version) throws MALInteractionException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "Broker.registerPublisher(" + providerURI
-          + ',' + tid + ',' + Strings.toString(domain) + ',' + networkZone
-          + ',' + sessionType + ',' + sessionName + ',' + qos + ',' + priority
-          + ',' + patterns + ')');
+          + ',' + tid + ',' + Strings.toString(domain) + ',' + subKeys + ',' + keyTypes + ')');
+    if (subKeys == null)
+      throw new IllegalArgumentException("null key names in PublishRegister.");
+    if (keyTypes == null)
+      throw new IllegalArgumentException("null key types in PublishRegister.");
+    if (keyTypes.size() != subKeys.size())
+      throw new IllegalArgumentException("key names and key types lists don't match in PublishRegister.");
+
     DomainKey domainKey = new DomainKey(area,
-        service, operation,domain, networkZone, sessionType,
-        sessionName, version);
+        service, operation, domain, version);
     PublisherKey publisherKey = new PublisherKey(providerURI, domainKey);
     PublisherContext publisherContext = (PublisherContext) publisherContexts
         .get(publisherKey);
-    if (publisherContext == null) {
+    if (publisherContext != null) {
+      if (logger.isLoggable(BasicLevel.DEBUG))
+        logger.log(BasicLevel.DEBUG, "Broker reregister Publisher " + providerURI);
+      // re-register case
+      publisherContext.reregister(subKeys, keyTypes);
+      // the structures are updated in the following code
+    } else {
       String mBeanName = getPublisherMBeanName(publisherKey);
-      publisherContext = new PublisherContext(publisherKey, tid, qos, priority,
-          version, patterns, mBeanName);
+      publisherContext = new PublisherContext(publisherKey, tid, version, subKeys, keyTypes, mBeanName);
       publisherContexts.put(publisherKey, publisherContext);
       try {
         MXWrapper.registerMBean(publisherContext, mBeanName);
       } catch (Exception e) {
         logger.log(BasicLevel.WARN, this.getClass().getName()
-            + " jmx failed: " + mBeanName, e);
+                   + " jmx failed: " + mBeanName, e);
       }
-    } else {
-      publisherContext.setPatterns(patterns);
     }
 
     Collection<SubscriberContext> subscribers = subscriberContexts.values();
@@ -529,13 +499,11 @@ public class Broker implements Serializable {
     return publisherContext;
   }
 
-  public PublisherContext deregisterPublisher(URI providerURI,
+  public PublisherContext deregisterPublisher(Identifier providerURI,
       IdentifierList domain, Identifier networkZone, SessionType sessionType,
       Identifier sessionName, UShort area, UShort service,
       UShort operation, UOctet areaVersion) {
-    DomainKey domainKey = new DomainKey(area,
-        service, operation, domain, networkZone, sessionType,
-        sessionName, areaVersion);
+    DomainKey domainKey = new DomainKey(area, service, operation, null, areaVersion);
     PublisherKey publisherKey = new PublisherKey(providerURI, domainKey);
     PublisherContext publisherContext = (PublisherContext) publisherContexts
         .remove(publisherKey);
@@ -552,27 +520,28 @@ public class Broker implements Serializable {
     return publisherContext;
   }
 
-  private UpdateCheckReport checkUpdates(URI providerURI,
+  private UpdateCheckReport checkUpdates(Identifier providerURI,
       UShort area, UShort service,
       UShort operation,
       UOctet areaVersion,
-      IdentifierList domain, Identifier networkZone, SessionType sessionType,
-      Identifier sessionName, UpdateHeaderList updateHeaderList,
-      List... updateLists) throws UnknownPublisherException,
+      UpdateHeader updateHeader,
+      Object... updateObjects) throws UnknownPublisherException,
       UnknownEntityException {
     if (logger.isLoggable(BasicLevel.DEBUG))
       logger.log(BasicLevel.DEBUG, "Broker.checkUpdates(" + providerURI + ','
-          + Strings.toString(domain) + ',' + networkZone + ',' + sessionType
-          + ',' + sessionName + ',' + updateHeaderList + ')');
+          + updateHeader + ')');
+    // TODO SL bug here regarding the publisher key
+    // the domain is important to find the publisher according to the Java API
+    // however this publisher domain is unknown here
+    // the question remains about the legality of the MonitorPublisher Java API
+    // as there should probably exist only one publisher for the provider.
     DomainKey domainKey = new DomainKey(area,
-        service, operation, domain, networkZone, sessionType,
-        sessionName, areaVersion);
+        service, operation, null, areaVersion);
     PublisherKey publisherKey = new PublisherKey(providerURI, domainKey);
     PublisherContext ctx = (PublisherContext) publisherContexts
         .get(publisherKey);
     if (logger.isLoggable(BasicLevel.DEBUG))
-      logger.log(BasicLevel.DEBUG, "publisherContexts=" + publisherContexts
-          + ')');
+      logger.log(BasicLevel.DEBUG, "publisherContext=" + ctx);
     if (ctx == null) {
       if (logger.isLoggable(BasicLevel.DEBUG))
         logger.log(BasicLevel.DEBUG, "Unknown publisher context: "
@@ -580,22 +549,8 @@ public class Broker implements Serializable {
       throw new UnknownPublisherException("Unknown publisher context: "
           + publisherKey);
     }
-    List[] updatesToNotify = new List[updateLists.length];
-    List[] failedUpdates = new List[updateLists.length];
-    for (int i = 0; i < updatesToNotify.length; i++) {
-      updatesToNotify[i] = createUpdateList(updateLists[i]);
-    }
-    for (int i = 0; i < failedUpdates.length; i++) {
-      failedUpdates[i] = createUpdateList(updateLists[i]);
-    }
-    UpdateCheckReport report = new UpdateCheckReport(ctx.getTransactionId(),
-        ctx.getQos(), ctx.getPriority(), updatesToNotify, failedUpdates);
-    ctx.checkUpdates(report, updateHeaderList, updateLists);
-    if (report.getFailedUpdateCount() > 0) {
-      if (logger.isLoggable(BasicLevel.DEBUG))
-        logger.log(BasicLevel.DEBUG, "report.getFailedUpdateHeaders()=" + report.getFailedUpdateHeaders());
-      throw new UnknownEntityException(report);
-    }
+    UpdateCheckReport report = new UpdateCheckReport(ctx.getTransactionId());
+    ctx.checkUpdates(report, updateHeader, updateObjects);
     return report;
   }
 }

@@ -67,10 +67,18 @@ public interface CNESMALProviderMBean extends BindingMBean {
   int getServiceNumber();
   
   /**
+   * TODO SL revert to area version
    * Returns the version of the area.
    * @return the version of the area
-   */
+   * /
   int getAreaVersion();
+  */
+
+  /**
+   * Returns the version of the service.
+   * @return the version of the service
+   */
+  int getServiceVersion();
   
   /**
    * Returns the number of published messages.

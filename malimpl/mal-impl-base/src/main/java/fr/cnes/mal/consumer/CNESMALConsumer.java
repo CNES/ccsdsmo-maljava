@@ -41,7 +41,7 @@ import org.ccsds.moims.mo.mal.MALPubSubOperation;
 import org.ccsds.moims.mo.mal.MALRequestOperation;
 import org.ccsds.moims.mo.mal.MALSendOperation;
 import org.ccsds.moims.mo.mal.MALService;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 import org.ccsds.moims.mo.mal.MALSubmitOperation;
 import org.ccsds.moims.mo.mal.consumer.MALConsumer;
 import org.ccsds.moims.mo.mal.consumer.MALInteractionListener;
@@ -49,6 +49,7 @@ import org.ccsds.moims.mo.mal.structures.Blob;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
 import org.ccsds.moims.mo.mal.structures.InteractionType;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.Subscription;
@@ -86,9 +87,9 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
   
   private InteractionManager interactionManager;
   
-  private URI uriTo;
+  private Identifier uriTo;
   
-  private URI brokerUri;
+  private Identifier brokerUri;
   
   private Blob authenticationId;
   
@@ -104,6 +105,8 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
   
   private QoSLevel qosLevel;
   
+  private NamedValueList supplements;
+  
   private Map qosProperties;
   
   private MessageDispatcher messageDispatcher;
@@ -118,8 +121,9 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
   
   private HashMap<Long, Integer> executorIndexes;
   
-  CNESMALConsumer(URI uriTo,
-      URI uriBroker,
+  CNESMALConsumer(
+      Identifier uriTo,
+      Identifier uriBroker,
       MALService service, 
       Blob authenticationId, 
       IdentifierList domain, 
@@ -127,6 +131,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
       SessionType sessionType,
       Identifier sessionName,
       QoSLevel qosLevel,
+      NamedValueList supplements,
       Map qosProperties,
       UInteger priority,
       CNESMALConsumerManager consumerManager, 
@@ -142,6 +147,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     this.sessionType = sessionType;
     this.sessionName = sessionName;
     this.qosLevel = qosLevel;
+    this.supplements = supplements;
     this.qosProperties = qosProperties;
     this.priority = priority;
     this.interactionManager = new InteractionManager();
@@ -159,43 +165,41 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
       MALOperation op,
       InteractionType interactionType,
       UOctet interactionStage,
-      URI destUri,
+      Identifier destUri,
       Long transactionId,
+      NamedValueList supplements,
       Object... body) throws MALException {
     return createMessage(
         authenticationId, destUri,
-        new Time(System.currentTimeMillis()), qosLevel,
-        priority, domain,
-        networkZone, sessionType, sessionName,
+        new Time(System.currentTimeMillis()),
         transactionId,
         Boolean.FALSE,
         op, interactionStage,
-        qosProperties, body);
+        supplements, qosProperties, body);
   }
   
   private MALMessage createMessage(
       MALOperation op,
       InteractionType interactionType,
       UOctet interactionStage,
-      URI destUri,
+      Identifier destUri,
       Long transactionId,
+      NamedValueList supplements,
       MALEncodedBody encodedBody) throws MALException {
     return createMessage(
         authenticationId, destUri,
-        new Time(System.currentTimeMillis()), qosLevel,
-        priority, domain,
-        networkZone, sessionType, sessionName,
+        new Time(System.currentTimeMillis()),
         transactionId,
         Boolean.FALSE,
         op, interactionStage,
-        qosProperties, encodedBody);
+        supplements, qosProperties, encodedBody);
   }
 
   public MALMessage send(MALSendOperation op, Object... body) throws MALInteractionException, MALException {
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SEND, SEND_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.SEND, SEND_STAGE, uriTo, tid, supplements, body);
     return sendMessage(msg);
   }
   
@@ -203,7 +207,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SEND, SEND_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.SEND, SEND_STAGE, uriTo, tid, supplements, encodedBody);
     return sendMessage(msg);
   }
 
@@ -212,7 +216,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, supplements, body);
     SubmitInteraction interact = new SubmitInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -224,7 +228,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, supplements, encodedBody);
     SubmitInteraction interact = new SubmitInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -236,7 +240,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, supplements, body);
     RequestInteraction interact = new RequestInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -248,7 +252,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, supplements, encodedBody);
     RequestInteraction interact = new RequestInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -260,7 +264,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, supplements, body);
     InvokeInteraction interact = new InvokeInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -272,7 +276,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, supplements, encodedBody);
     InvokeInteraction interact = new InvokeInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -284,7 +288,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, supplements, body);
     ProgressInteraction interact = new ProgressInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -296,7 +300,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, supplements, encodedBody);
     ProgressInteraction interact = new ProgressInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -312,7 +316,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
     MALMessage msg = createMessage(op, InteractionType.PUBSUB, MALPubSubOperation.REGISTER_STAGE, 
-        brokerUri, tid, subscriptionRequest);
+        brokerUri, tid, supplements, subscriptionRequest);
     subscriptionManager.registerListener(subscriptionRequest.getSubscriptionId(), listener);
     RegisterInteraction interact = new RegisterInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
@@ -336,7 +340,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     
     Long tid = interactionManager.getTransactionId();
     MALMessage msg = createMessage(op, InteractionType.PUBSUB, MALPubSubOperation.DEREGISTER_STAGE,
-        brokerUri, tid, unsubscriptionList);
+        brokerUri, tid, supplements, unsubscriptionList);
     DeregisterInteraction interact = new DeregisterInteraction(op, msg.getHeader());
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -348,7 +352,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, supplements, body);
     AsyncSubmitInteraction interact = new AsyncSubmitInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -360,7 +364,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.SUBMIT, MALSubmitOperation.SUBMIT_STAGE, uriTo, tid, supplements, encodedBody);
     AsyncSubmitInteraction interact = new AsyncSubmitInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -372,7 +376,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, supplements, body);
     AsyncRequestInteraction interact = new AsyncRequestInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -384,7 +388,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.REQUEST, MALRequestOperation.REQUEST_STAGE, uriTo, tid, supplements, encodedBody);
     AsyncRequestInteraction interact = new AsyncRequestInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -396,7 +400,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, supplements, body);
     AsyncInvokeInteraction interact = new AsyncInvokeInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -408,7 +412,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.INVOKE, MALInvokeOperation.INVOKE_STAGE, uriTo, tid, supplements, encodedBody);
     AsyncInvokeInteraction interact = new AsyncInvokeInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -420,7 +424,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, body);
+    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, supplements, body);
     AsyncProgressInteraction interact = new AsyncProgressInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -432,7 +436,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     checkClosed();
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
-    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, encodedBody);
+    MALMessage msg = createMessage(op, InteractionType.PROGRESS, MALProgressOperation.PROGRESS_STAGE, uriTo, tid, supplements, encodedBody);
     AsyncProgressInteraction interact = new AsyncProgressInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
     sendMessage(msg);
@@ -446,7 +450,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     if (op == null) throw new IllegalArgumentException(NULL_OP_ERROR);
     Long tid = interactionManager.getTransactionId();
     MALMessage msg = createMessage(op, InteractionType.PUBSUB, MALPubSubOperation.REGISTER_STAGE, brokerUri, 
-        tid, subscriptionRequest);
+        tid, supplements, subscriptionRequest);
     subscriptionManager.registerListener(subscriptionRequest.getSubscriptionId(), listener);
     AsyncRegisterInteraction interact = 
       new AsyncRegisterInteraction(op, msg.getHeader(), listener);
@@ -472,7 +476,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     
     Long tid = interactionManager.getTransactionId();
     MALMessage msg = createMessage(op, InteractionType.PUBSUB, MALPubSubOperation.DEREGISTER_STAGE, brokerUri, 
-        tid, unsubscriptionList); 
+        tid, supplements, unsubscriptionList); 
     AsyncDeregisterInteraction interact = 
       new AsyncDeregisterInteraction(op, msg.getHeader(), listener);
     interactionManager.putInteraction(tid, interact);
@@ -503,8 +507,8 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
       if (msg.getHeader().getInteractionType().getOrdinal() == InteractionType._PUBSUB_INDEX &&
           msg.getHeader().getInteractionStage().getValue() == MALPubSubOperation._NOTIFY_STAGE) {
         // The message area and service may be different than the consumer area and service
-        if (service.getArea().getNumber().getValue() != msg.getHeader().getServiceArea().getValue()) {
-          messageArea = MALContextFactory.lookupArea(msg.getHeader().getServiceArea(), msg.getHeader().getAreaVersion());
+        if (service.getAreaNumber().getValue() != msg.getHeader().getServiceArea().getValue()) {
+          messageArea = MALContextFactory.lookupArea(msg.getHeader().getServiceArea(), msg.getHeader().getServiceVersion());
           if (messageArea == null) {
             throw CNESMALContext.createException("Unexpected area: " + msg.getHeader().getServiceArea());
           }
@@ -513,26 +517,28 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
           if (messageService == null) {
             throw CNESMALContext.createException("Unexpected service: " + msg.getHeader().getService());
           }
-        } else if (service.getNumber().getValue() != msg.getHeader().getService().getValue()) {
-          messageArea = service.getArea();
+        } else if (service.getServiceNumber().getValue() != msg.getHeader().getService().getValue()) {
+          // cannot get the area from the service in new API
+          // messageArea = service.getArea();
+          messageArea = getServiceArea();
           messageService = messageArea.getServiceByNumber(
               msg.getHeader().getService());
           if (messageService == null) {
             throw CNESMALContext.createException("Unexpected service: " + msg.getHeader().getService());
           }
         } else {
-          messageArea = service.getArea();
+          messageArea = getServiceArea();
           messageService = service;
         }
       } else {
         // Checks the area and service
-        if (service.getArea().getNumber().getValue() != msg.getHeader().getServiceArea().getValue()) {
+        if (service.getAreaNumber().getValue() != msg.getHeader().getServiceArea().getValue()) {
           throw CNESMALContext.createException("Unexpected area: " + msg.getHeader().getServiceArea());
         }
-        if (service.getNumber().getValue() != msg.getHeader().getService().getValue()) {
+        if (service.getServiceNumber().getValue() != msg.getHeader().getService().getValue()) {
           throw CNESMALContext.createException("Unexpected service: " + msg.getHeader().getService());
         }
-        messageArea = service.getArea();
+        messageArea = getServiceArea();
         messageService = service;
       }
       
@@ -606,7 +612,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     }
 
     @Override
-    protected void onDeliveryError(MALStandardError error) throws MALException {
+    protected void onDeliveryError(MOErrorException error) throws MALException {
       if (logger.isLoggable(BasicLevel.WARN))
         logger.log(BasicLevel.WARN, "Failed to deliver message: " + getMessage() + " caused by: " + error);
     }
@@ -658,11 +664,11 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
   }
   
   public String getAreaName() {
-    return getService().getArea().getName().getValue();
+    return getServiceArea().getName().getValue();
   }
 
   public int getAreaNumber() {
-    return getService().getArea().getNumber().getValue();
+    return getServiceArea().getNumber().getValue();
   }
 
   public String getServiceName() {
@@ -670,11 +676,19 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
   }
 
   public int getServiceNumber() {
-    return getService().getNumber().getValue();
+    return getService().getServiceNumber().getValue();
   }
 
+  /**
+   * TODO SL revert to area version
+   *
   public int getAreaVersion() {
     return getService().getArea().getVersion().getValue();
+  }
+  */
+
+  public int getServiceVersion() {
+    return getService().getServiceVersion().getValue();
   }
 
   public int getSubscriptionCount() {
@@ -697,7 +711,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     }
   }
 
-  public byte[] getAuthenticationId() {
+  public byte[] getAuthenticationIdValue() {
     try {
       return authenticationId.getValue();
     } catch (MALException e) {
@@ -705,6 +719,10 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
         logger.log(BasicLevel.WARN, "", e);
       return null;
     }
+  }
+  
+  public Blob getAuthenticationId() {
+    return authenticationId;
   }
 
   public String getNetworkZone() {
@@ -731,6 +749,7 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     return domain.toString();
   }
 
+  // TODO SL should add a supplements parameter
   public void continueInteraction(
       MALOperation op,
       UOctet lastInteractionStage,
@@ -744,28 +763,25 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
     if (transactionId == null) throw new IllegalArgumentException("Null transaction id");
     if (listener == null) throw new IllegalArgumentException("Null listener");
     MALMessageHeader initHeader = new CNESMALMessageHeader(
-        getURI(),
+        getDestinationId(),
         authenticationId, 
         uriTo, 
         initiationTimestamp, 
-        qosLevel, 
-        priority, 
-        domain,
-        networkZone, 
-        sessionType, 
-        sessionName, 
         op.getInteractionType(), 
         new UOctet((short) 1), 
         transactionId, 
-        getService().getArea().getNumber(), 
-        getService().getNumber(), 
+        getService().getAreaNumber(), 
+        getService().getServiceNumber(), 
         op.getNumber(), 
-        getService().getArea().getVersion(), 
-        Boolean.FALSE);
+        getService().getServiceVersion(), 
+        Boolean.FALSE,
+        new NamedValueList());  // the supplements field should come from the stub calling this function
     interactionManager.continueInteraction(op, initHeader, lastInteractionStage, listener);
   }
   
   public void checkInteractionActivity(long currentTime, int timeout) {
+    if (logger.isLoggable(BasicLevel.DEBUG))
+      logger.log(BasicLevel.DEBUG, "CNESMALConsumer-" + uriTo + ".checkInteractionActivity");
     interactionManager.checkInteractionActivity(currentTime, timeout);
   }
   
@@ -807,8 +823,14 @@ public class CNESMALConsumer extends Binding implements MALConsumer, CNESMALCons
 
   @Override
   protected void handleTransmitError(MALMessageHeader header,
-      MALStandardError standardError) throws MALException {
+      MOErrorException standardError) throws MALException {
     // Nothing to do
+  }
+
+  public Blob setAuthenticationId(Blob newAuthenticationId) {
+    Blob previous = authenticationId;
+    authenticationId = newAuthenticationId;
+    return previous;
   }
   
 }

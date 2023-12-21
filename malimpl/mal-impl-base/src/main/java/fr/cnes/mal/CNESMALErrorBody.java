@@ -24,7 +24,7 @@
 package fr.cnes.mal;
 
 import org.ccsds.moims.mo.mal.MALException;
-import org.ccsds.moims.mo.mal.MALStandardError;
+import org.ccsds.moims.mo.mal.MOErrorException;
 /*
 import org.ccsds.moims.mo.mal.structures.Attribute;
 import org.ccsds.moims.mo.mal.structures.Blob;
@@ -47,9 +47,9 @@ import org.ccsds.moims.mo.mal.transport.MALErrorBody;
 
 public class CNESMALErrorBody implements MALErrorBody {
 
-  private MALStandardError error;
+  private MOErrorException error;
 
-  public CNESMALErrorBody(MALStandardError error) {
+  public CNESMALErrorBody(MOErrorException error) {
     this.error = error;
   }
 
@@ -69,7 +69,7 @@ public class CNESMALErrorBody implements MALErrorBody {
     return 2;
   }
   
-  public MALStandardError getError() throws MALException {
+  public MOErrorException getError() throws MALException {
     return error;
   }
   

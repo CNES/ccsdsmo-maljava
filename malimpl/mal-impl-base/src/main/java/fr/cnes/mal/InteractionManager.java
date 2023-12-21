@@ -147,24 +147,19 @@ public class InteractionManager {
   
   private MALMessageHeader getInitialHeader(MALMessageHeader responseHeader) {
     MALMessageHeader initHeader = new CNESMALMessageHeader(
-        responseHeader.getURITo(),
+        responseHeader.getTo(),
         responseHeader.getAuthenticationId(), 
-        responseHeader.getURIFrom(),
+        responseHeader.getFrom(),
         responseHeader.getTimestamp(), 
-        responseHeader.getQoSlevel(), 
-        responseHeader.getPriority(), 
-        responseHeader.getDomain(), 
-        responseHeader.getNetworkZone(), 
-        responseHeader.getSession(), 
-        responseHeader.getSessionName(), 
         responseHeader.getInteractionType(), 
         new UOctet((short) 1), 
         responseHeader.getTransactionId(), 
         responseHeader.getServiceArea(), 
         responseHeader.getService(), 
         responseHeader.getOperation(), 
-        responseHeader.getAreaVersion(), 
-        Boolean.FALSE);
+        responseHeader.getServiceVersion(), 
+        Boolean.FALSE,
+        responseHeader.getSupplements());
     return initHeader;
   }
   

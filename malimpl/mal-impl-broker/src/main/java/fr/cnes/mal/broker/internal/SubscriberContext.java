@@ -32,6 +32,7 @@ import java.util.Map;
 import org.ccsds.moims.mo.mal.MALContextFactory;
 import org.ccsds.moims.mo.mal.structures.Identifier;
 import org.ccsds.moims.mo.mal.structures.IdentifierList;
+import org.ccsds.moims.mo.mal.structures.NamedValueList;
 import org.ccsds.moims.mo.mal.structures.QoSLevel;
 import org.ccsds.moims.mo.mal.structures.SessionType;
 import org.ccsds.moims.mo.mal.structures.UInteger;
@@ -46,11 +47,9 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
   
   private SubscriberKey key;
   
-  private QoSLevel qosLevel;
+  private NamedValueList supplements;
   
   private Map qosProperties;
-  
-  private UInteger priority;
   
   private String jmxName;
   
@@ -65,14 +64,13 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
   private ArrayList<SubscriptionContext> subscriptions;
   
   public SubscriberContext(SubscriberKey key,
-      QoSLevel qosLevel, Map qosProperties,
-      UInteger priority, String jmxName, UShort area, UShort service,
+      NamedValueList supplements, Map qosProperties,
+      String jmxName, UShort area, UShort service,
       UShort operation, UOctet version) throws Exception {
     super();
     this.key = key;
-    this.qosLevel = qosLevel;
+    this.supplements = supplements;
     this.qosProperties = qosProperties;
-    this.priority = priority;
     this.jmxName = jmxName;
     this.area = area;
     this.service = service;
@@ -85,7 +83,7 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
     this.jmxName = jmxName;
     for (SubscriptionContext subscription : subscriptions) {
       String mBeanName = getMBeanName(subscription.getSubscriptionId());
-      subscription.initJmx(mBeanName);
+//      subscription.initJmx(mBeanName);
       try {
         MXWrapper.registerMBean(subscription, mBeanName);
       } catch (Exception e) {
@@ -110,16 +108,12 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
     return key;
   }
   
-  public QoSLevel getQoSLevel() {
-    return qosLevel;
+  public NamedValueList getSupplements() {
+    return supplements;
   }
   
   public Map getQosProperties() {
     return qosProperties;
-  }
-  
-  public UInteger getPriority() {
-    return priority;
   }
   
   public UShort getArea() {
@@ -177,47 +171,35 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
     }
     return null;
   }
-    
-  boolean match(IdentifierList publicationDomain, 
-      Identifier publicationNetwork, 
-      SessionType publicationSessionType, 
-      Identifier publicationSessionName) {
-    if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-      Broker.logger.log(BasicLevel.DEBUG, toString() + ".match(domain=" + 
-          Strings.toString(publicationDomain) + 
-          ",network=" + publicationNetwork + 
-          ",sessionType=" + publicationSessionType +
-          ",sessionName=" + publicationSessionName + ')');
-    // The subscription domain can't be longer than the
-    // publication domain
-    IdentifierList domain = key.getDomainKey().getDomain();
-    if (domain.size() > publicationDomain.size()) {
+
+  public boolean matchArea(UShort area) {
+    if (! getArea().equals(area)) {
       if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-        Broker.logger.log(BasicLevel.DEBUG, "Subscription domain longer");
+        Broker.logger.log(BasicLevel.DEBUG, "Different area: " + 
+            getArea() + " != " + area);
       return false;
     }
-    for (int i = 0; i < domain.size(); i++) {
-      if (! domain.get(i).equals(publicationDomain.get(i))) {
-        if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-          Broker.logger.log(BasicLevel.DEBUG, "Subscription domain is different");
-        return false;
-      }
-    }
-    SessionType sessionType = key.getDomainKey().getSessionType();
-    // The network zone is ignored
-    //if (! networkZone.equals(publicationNetwork)) return false;
-    if (sessionType.getOrdinal() != publicationSessionType.getOrdinal()) {
+    return true;
+  }
+  
+  public boolean matchService(UShort service) {
+    if (! getService().equals(service)) {
       if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-        Broker.logger.log(BasicLevel.DEBUG, "Different session type");
+        Broker.logger.log(BasicLevel.DEBUG, "Different service: " + 
+            getService() + " != " + service);
       return false;
     }
-    Identifier sessionName = key.getDomainKey().getSessionName();
-    if (! sessionName.equals(publicationSessionName)) {
+    return true;
+  }
+  
+  public boolean matchOperation(UShort operation) {
+    if (! getOperation().equals(operation)) {
       if (Broker.logger.isLoggable(BasicLevel.DEBUG))
-        Broker.logger.log(BasicLevel.DEBUG, "Different session name");
+        Broker.logger.log(BasicLevel.DEBUG, "Different operation: " + 
+            getOperation() + " != " + operation);
       return false;
     }
-    return true; 
+    return true;
   }
   
   private String getMBeanName(Identifier subscriptionId) {
@@ -255,12 +237,12 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
     }
   }
   
+  // TODO SL probleme de boucle entre SubscriberContext et SubscriptionContext
   private void readObject(java.io.ObjectInputStream is)
       throws IOException, ClassNotFoundException {
     key = (SubscriberKey) is.readObject();
-    qosLevel = QoSLevel.fromOrdinal(is.readInt());
+    supplements = (NamedValueList) is.readObject();
     qosProperties = (Map) is.readObject();
-    priority = new UInteger(is.readLong());
     area = new UShort(is.readInt());
     service = new UShort(is.readInt());
     operation = new UShort(is.readInt());
@@ -271,9 +253,8 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
   private void writeObject(java.io.ObjectOutputStream os)
       throws IOException {
     os.writeObject(key);
-    os.writeInt(qosLevel.getOrdinal());
+    os.writeObject(supplements);
     os.writeObject(qosProperties);
-    os.writeLong(priority.getValue());
     os.writeInt(area.getValue());
     os.writeInt(service.getValue());
     os.writeInt(operation.getValue());
@@ -283,8 +264,8 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
 
   @Override
   public String toString() {
-    return "SubscriberContext [key=" + key + ", qosLevel=" + qosLevel
-        + ", qosProperties=" + qosProperties + ", priority=" + priority
+    return "SubscriberContext [key=" + key + ", supplements=" + supplements
+        + ", qosProperties=" + qosProperties
         + ", jmxName=" + jmxName + ", area=" + area + ", service="
         + service + ", operation=" + operation + ", version=" + version
         + ", subscriptions=" + subscriptions + "]";
@@ -313,23 +294,8 @@ class SubscriberContext implements Serializable, SubscriberContextMBean {
     return key.getDomainKey().getDomain().toString();
   }
 
-  public String getNetworkZone() {
-    return key.getDomainKey().getNetworkZone().getValue();
+  public String getSupplementsAsString() {
+    return String.valueOf(supplements);
   }
 
-  public String getSessionType() {
-    return key.getDomainKey().getSessionType().toString();
-  }
-
-  public String getSessionName() {
-    return key.getDomainKey().getSessionName().getValue();
-  }
-
-  public String getQoSLevelAsString() {
-    return qosLevel.toString();
-  }
-
-  public long getPriorityAsLong() {
-    return priority.getValue();
-  }
 }

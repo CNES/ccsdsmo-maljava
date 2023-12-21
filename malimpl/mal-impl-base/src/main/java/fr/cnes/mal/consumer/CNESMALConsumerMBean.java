@@ -37,7 +37,12 @@ public interface CNESMALConsumerMBean extends BindingMBean {
   
   int getServiceNumber();
   
+  /**
+   * TODO SL revert to area version
+   *
   int getAreaVersion();
+  */
+  int getServiceVersion();
   
   String getURIToAsString();
   
@@ -49,7 +54,9 @@ public interface CNESMALConsumerMBean extends BindingMBean {
 
   int getSubscriptionCount();
   
-  byte[] getAuthenticationId();
+  // TODO SL getAuthenticationId is already defined in MALConsumer with a different return value
+  // this change may have other consequences
+  byte[] getAuthenticationIdValue();
   
   String getDomainAsString();
 
