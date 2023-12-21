@@ -56,3 +56,9 @@ All projects are simply built using Maven:
 ## Practical Tips for Using the MAL Java API
 
 This [tutorial](https://github.com/esa/CCSDS_MO/wiki/Practical-Tips-for-Using-the-MAL-Java-API) contains an introduction to the use of MAL Java API.
+
+# branch ESA_10_0
+
+This branch validates the MAL v2 specification with the ESA testbed version 10.
+
+MAL v2 introduces several changes, the biggest one being the Java mapping being silverized. This means that the Java mapping is no longer a standard, and that the ESA testbed evolves without notice. As the ESA testbed requires a common mapping, it is no longer possible to maintain a complete and consistent stack. For that reason, the malimpl package only has been updated for the MAL v2 prototyping, leading to the creation of the ESA_10_0 branch to host this change. The other packages, namely the MAL api and stub generator have been reused from the ESA implementation.
